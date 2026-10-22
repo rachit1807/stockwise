@@ -1,0 +1,8 @@
+{
+  "name":"stockwise","version":"1.0.0","private":true,"type":"module",
+  "description":"Inventory and expiry management for small businesses with authenticated React workspaces",
+  "engines":{"node":">=22.13"},
+  "scripts":{"dev":"concurrently -k \"npm:dev:server\" \"npm:dev:client\"","dev:server":"node --env-file-if-exists=.env server/index.js","dev:client":"vite --host 127.0.0.1","build":"vite build","start":"node --env-file-if-exists=.env server/index.js","test":"node --test --test-concurrency=1 tests/*.test.js"},
+  "dependencies":{"react":"^19.1.0","react-dom":"^19.1.0","react-router-dom":"^7.6.0","lucide-react":"^0.468.0","express":"^5.1.0","bcrypt":"^6.0.0","dotenv":"^17.2.3","express-rate-limit":"^8.1.0","helmet":"^8.1.0","jsonwebtoken":"^9.0.2","pg":"^8.16.3","zod":"^4.1.12"},
+  "devDependencies":{"vite":"^6.3.0","@vitejs/plugin-react":"^4.4.0","concurrently":"^9.1.0","supertest":"^7.1.4"}
+}

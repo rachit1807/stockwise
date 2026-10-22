@@ -1,0 +1,2 @@
+import LoginForm from './LoginForm';
+export default function RegisterForm(){return <LoginForm register/>}
