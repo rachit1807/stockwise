@@ -67,6 +67,7 @@ This project demonstrates **connecting a React frontend to backend authenticatio
 <p align="center">
   <img src="https://img.shields.io/badge/JWT-HS256-283425?style=for-the-badge&logo=jsonwebtokens&logoColor=c8f36b" alt="JWT authentication">
   <img src="https://img.shields.io/badge/Zod-validation-283425?style=for-the-badge&logo=zod&logoColor=c8f36b" alt="Zod validation">
+  <img src="https://img.shields.io/badge/Neon-PostgreSQL-008060?style=for-the-badge&logo=neon&logoColor=white" alt="Neon PostgreSQL">
   <img src="https://img.shields.io/badge/Render-hosting-283425?style=for-the-badge&logo=render&logoColor=c8f36b" alt="Render hosting">
 </p>
 
@@ -77,7 +78,7 @@ This project demonstrates **connecting a React frontend to backend authenticatio
 | Authentication         | JWT, bcrypt cost 12, database-backed sessions                     |
 | Validation and headers | Zod, Helmet, authentication rate limiting                         |
 | Local persistence      | Built-in Node SQLite; no database install required                |
-| Hosted persistence     | PostgreSQL in an isolated `stockwise` schema                      |
+| Hosted persistence     | Dedicated Neon PostgreSQL database with a `stockwise` schema                      |
 | Checks                 | Node test runner, Supertest, production build, GitHub Actions     |
 
 ## Run locally
@@ -200,9 +201,13 @@ Deploy the frontend and API as one Node web service:
 
 Production requires PostgreSQL or a SQLite path on an explicitly persistent volume. Do not put SQLite on a hosting service’s ephemeral filesystem. The server binds to `0.0.0.0`, serves React route fallbacks and closes database connections on shutdown.
 
-### Current hosting limitation
+### Hosted database
 
-The selected free Render PostgreSQL instance is shared with another project, with StockWise using its own isolated schema. The existing instance expires on **9 November 2026**. Migrate StockWise to a separate persistent PostgreSQL database or upgrade the instance before expiry to keep the application available. Shared schema separation prevents table-name collisions; it is not database-role-level isolation.
+The live frontend and API run on Render, while production data is stored in a dedicated **Neon PostgreSQL 16** database in Singapore. StockWise uses the `stockwise` schema in its own database, separate from other projects. Existing accounts, inventory and session records were migrated and verified on **22 October 2026**.
+
+Set `DATABASE_URL` to Neon's **direct (unpooled) connection URL** with TLS enabled. The app sets `search_path` during connection startup, which is incompatible with Neon's pooled endpoint. Keep credentials in the hosting environment, never in Git.
+
+The production branch has **no scheduled expiry**. StockWise no longer depends on the former Render database expiring on 9 November 2026. Neon Free usage quotas still apply, and the free Render web service may sleep after inactivity. See [Neon plans](https://neon.com/docs/introduction/plans) and [Render free-instance limits](https://render.com/docs/free).
 
 ## Project structure
 
