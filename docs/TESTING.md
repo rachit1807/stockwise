@@ -38,9 +38,11 @@ Verified in the browser:
 - Logout followed by a direct protected-route visit redirects to login.
 - Desktop light/dark themes render correctly.
 - Mobile inventory uses stacked cards at 390px.
-- Mobile navigation opens and the expiry view is reachable.
+- Fixed mobile navigation switches between the catalog and expiry view.
 - The expiry timeline renders at 360px.
 - Document width equals viewport width at 390px and 360px (no horizontal page overflow).
+
+The redesigned interface was rechecked on 22 October 2026: registration, sample loading, desktop light/dark themes, the 390px catalog and the 360px expiry view. Both phone widths had no horizontal page overflow.
 
 Saved evidence in `docs/screenshots/`:
 
