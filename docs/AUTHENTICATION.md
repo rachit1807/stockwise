@@ -20,15 +20,15 @@ StockWise builds on the earlier TokenNest backend structure: its user controller
 
 ## Separation of concerns
 
-| File | Responsibility |
-| --- | --- |
-| `src/components/Auth/LoginForm.jsx` | Controlled password visibility, form submission and error/loading states |
-| `src/components/Auth/RegisterForm.jsx` | Registration variant of the account form |
-| `src/services/api.js` | JSON requests, Bearer header, token storage and API errors |
-| `src/context/AuthContext.jsx` | Authenticated profile, startup session check, expiry and logout |
-| `src/routes/ProtectedRoute.jsx` | Guarded React routes |
-| `server/routes/userRoutes.js` | Backend authentication endpoints |
-| `server/controllers/userController.js` | Validation, password hashing and authentication responses |
-| `server/middleware/verifyToken.js` | JWT and persisted-session verification |
+| File                                   | Responsibility                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `src/components/Auth/LoginForm.jsx`    | Controlled password visibility, form submission and error/loading states |
+| `src/components/Auth/RegisterForm.jsx` | Registration variant of the account form                                 |
+| `src/services/api.js`                  | JSON requests, Bearer header, token storage and API errors               |
+| `src/context/AuthContext.jsx`          | Authenticated profile, startup session check, expiry and logout          |
+| `src/routes/ProtectedRoute.jsx`        | Guarded React routes                                                     |
+| `server/routes/userRoutes.js`          | Backend authentication endpoints                                         |
+| `server/controllers/userController.js` | Validation, password hashing and authentication responses                |
+| `server/middleware/verifyToken.js`     | JWT and persisted-session verification                                   |
 
 Registration and login use controlled React inputs. React state manages field values, submission, feedback and password visibility.

@@ -9,7 +9,7 @@
 Inventory clarity for the small businesses that keep everyday life moving.<br>
 Track stock, spot shortages, and give every product its moment before expiry.
 
-[Explore the code](https://github.com/rachit1807/stockwise) · [Run locally](#run-locally) · [Authentication](docs/AUTHENTICATION.md) · [Verification](docs/TESTING.md)
+[Live demo](https://stockwise-rachit.onrender.com) · [Explore the code](https://github.com/rachit1807/stockwise) · [Run locally](#run-locally) · [Authentication](docs/AUTHENTICATION.md) · [Verification](docs/TESTING.md)
 
 ![Checks](https://github.com/rachit1807/stockwise/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-526945?style=flat-square)
@@ -38,6 +38,28 @@ This project demonstrates **connecting a React frontend to backend authenticatio
 - **Responsive design:** desktop sidebar, mobile navigation drawer, stacked phone inventory cards, responsive forms and touch-friendly controls.
 - **Accessible interactions:** semantic labels, focus indicators, dialog focus management, Escape dismissal, live feedback and reduced-motion support.
 
+## A look inside
+
+![StockWise dashboard in light mode](docs/screenshots/dashboard-light.png)
+
+<details>
+<summary>Dark theme and mobile inventory</summary>
+
+![StockWise dashboard in dark mode](docs/screenshots/dashboard-dark.png)
+
+<img src="docs/screenshots/mobile-inventory.png" width="330" alt="StockWise mobile inventory cards in dark mode">
+
+</details>
+
+<details>
+<summary>Registration and login</summary>
+
+![StockWise registration form](docs/screenshots/registration.png)
+
+![StockWise login form](docs/screenshots/login.png)
+
+</details>
+
 ## Technology
 
 <p align="center">
@@ -49,15 +71,15 @@ This project demonstrates **connecting a React frontend to backend authenticatio
   <img src="https://img.shields.io/badge/Render-hosting-283425?style=for-the-badge&logo=render&logoColor=c8f36b" alt="Render hosting">
 </p>
 
-| Layer | Implementation |
-| --- | --- |
-| Frontend | React 19, React Router, Vite, Lucide icons, custom responsive CSS |
-| Backend | Node.js 24, Express 5, Fetch-based JSON APIs |
-| Authentication | JWT, bcrypt cost 12, database-backed sessions |
-| Validation and headers | Zod, Helmet, authentication rate limiting |
-| Local persistence | Built-in Node SQLite; no database install required |
-| Hosted persistence | PostgreSQL in an isolated `stockwise` schema |
-| Checks | Node test runner, Supertest, production build, GitHub Actions |
+| Layer                  | Implementation                                                    |
+| ---------------------- | ----------------------------------------------------------------- |
+| Frontend               | React 19, React Router, Vite, Lucide icons, custom responsive CSS |
+| Backend                | Node.js 24, Express 5, Fetch-based JSON APIs                      |
+| Authentication         | JWT, bcrypt cost 12, database-backed sessions                     |
+| Validation and headers | Zod, Helmet, authentication rate limiting                         |
+| Local persistence      | Built-in Node SQLite; no database install required                |
+| Hosted persistence     | PostgreSQL in an isolated `stockwise` schema                      |
+| Checks                 | Node test runner, Supertest, production build, GitHub Actions     |
 
 ## Run locally
 
@@ -82,14 +104,14 @@ npm run dev
 
 Open **http://localhost:5173**. Vite forwards `/api` requests to Express on port **3001**. SQLite creates `data/stockwise.db` automatically. Register your own account; no shared demo credentials are required.
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the frontend and API together |
-| `npm run dev:client` | Start Vite only |
-| `npm run dev:server` | Start Express only; restart after backend edits |
-| `npm test` | Run 13 API integration tests |
-| `npm run build` | Build the production frontend into `dist/` |
-| `npm start` | Serve the API and the built frontend from one process |
+| Command              | Purpose                                               |
+| -------------------- | ----------------------------------------------------- |
+| `npm run dev`        | Start the frontend and API together                   |
+| `npm run dev:client` | Start Vite only                                       |
+| `npm run dev:server` | Start Express only; restart after backend edits       |
+| `npm test`           | Run 13 API integration tests                          |
+| `npm run build`      | Build the production frontend into `dist/`            |
+| `npm start`          | Serve the API and the built frontend from one process |
 
 For a local production-style run, use `npm run build` followed by `npm start`, then open **http://localhost:3001**.
 
@@ -123,18 +145,18 @@ See [the authentication guide](docs/AUTHENTICATION.md) for the connection to the
 
 All request and response bodies are JSON. Protected endpoints require `Authorization: Bearer <accessToken>`.
 
-| Method | Endpoint | Access | Purpose |
-| --- | --- | --- | --- |
-| GET | `/api/health` | Public | Verify API and database readiness |
-| POST | `/api/auth/register` | Public, rate limited | Create account and session |
-| POST | `/api/auth/login` | Public, rate limited | Authenticate and create session |
-| GET | `/api/auth/me` | Protected | Restore the current profile |
-| GET | `/api/auth/verify` | Protected | Verify token and session |
-| POST | `/api/auth/logout` | Protected | Revoke the current session |
-| GET | `/api/products` | Protected | List this account’s inventory |
-| POST | `/api/products` | Protected | Create a product |
-| PUT | `/api/products/:id` | Protected | Update an owned product |
-| DELETE | `/api/products/:id` | Protected | Remove an owned product |
+| Method | Endpoint             | Access               | Purpose                           |
+| ------ | -------------------- | -------------------- | --------------------------------- |
+| GET    | `/api/health`        | Public               | Verify API and database readiness |
+| POST   | `/api/auth/register` | Public, rate limited | Create account and session        |
+| POST   | `/api/auth/login`    | Public, rate limited | Authenticate and create session   |
+| GET    | `/api/auth/me`       | Protected            | Restore the current profile       |
+| GET    | `/api/auth/verify`   | Protected            | Verify token and session          |
+| POST   | `/api/auth/logout`   | Protected            | Revoke the current session        |
+| GET    | `/api/products`      | Protected            | List this account’s inventory     |
+| POST   | `/api/products`      | Protected            | Create a product                  |
+| PUT    | `/api/products/:id`  | Protected            | Update an owned product           |
+| DELETE | `/api/products/:id`  | Protected            | Remove an owned product           |
 
 Example product body:
 
@@ -155,15 +177,15 @@ Allowed categories: `Groceries`, `Beverages`, `Personal care`, `Household`, `Oth
 
 ## Configuration
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3001` | Express listening port |
-| `JWT_SECRET` | Temporary random value in development | At least 32 characters; required in production |
-| `JWT_EXPIRES_IN` | `2h` | Access-token lifetime |
-| `DATABASE_URL` | Unset | PostgreSQL connection URL |
-| `DATABASE_SCHEMA` | `stockwise` | Isolated PostgreSQL schema |
-| `SQLITE_PATH` | `data/stockwise.db` | Local SQLite path |
-| `NODE_ENV` | Development | Set `production` on the live host |
+| Variable          | Default                               | Purpose                                        |
+| ----------------- | ------------------------------------- | ---------------------------------------------- |
+| `PORT`            | `3001`                                | Express listening port                         |
+| `JWT_SECRET`      | Temporary random value in development | At least 32 characters; required in production |
+| `JWT_EXPIRES_IN`  | `2h`                                  | Access-token lifetime                          |
+| `DATABASE_URL`    | Unset                                 | PostgreSQL connection URL                      |
+| `DATABASE_SCHEMA` | `stockwise`                           | Isolated PostgreSQL schema                     |
+| `SQLITE_PATH`     | `data/stockwise.db`                   | Local SQLite path                              |
+| `NODE_ENV`        | Development                           | Set `production` on the live host              |
 
 Never commit `.env`, database files or connection credentials. Without a stable development `JWT_SECRET`, restarting the API invalidates existing access tokens.
 
@@ -212,7 +234,7 @@ stockwise/
 
 ## Verification and scope
 
-All 13 API integration tests and the production build pass locally. [The verification record](docs/TESTING.md) separates automated results from the manual browser checks that remain pending. No placeholder screenshots are presented as completed evidence.
+All 13 API integration tests and the production build pass locally. The live HTTPS application has also been checked in the browser at desktop, 390px and 360px widths. Registration, isolated inventory, sample loading, product creation/editing, search, category filtering, CSV download and theme changes were exercised. [The verification record](docs/TESTING.md) documents the checks and remaining limits. Screenshots above were captured from the deployed application.
 
 StockWise is an educational inventory application. It does not process payments, convert exchange rates, send email reminders, maintain audit history, or provide password reset. These are possible future extensions.
 

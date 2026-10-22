@@ -1,26 +1,229 @@
-import {test,before,after} from 'node:test';
-import assert from 'node:assert/strict';
-import request from 'supertest';
-import jwt from 'jsonwebtoken';
-import {createApp} from '../server/app.js';
-import {createStore} from '../server/store.js';
-import {config} from '../server/config.js';
-let store,app,token,user,otherToken;
-const settings=config({secret:'test-secret-that-is-at-least-32-characters',rateLimit:1000});
-const product={name:'Oat milk',sku:'OAT-01',category:'Beverages',quantity:12,threshold:5,price:200.5,expiry:'2027-01-01',supplier:'Green Grove'};
-before(async()=>{store=await createStore({databaseUrl:null,filename:':memory:'});app=createApp(store,settings)});
-after(async()=>store.close());
-test('health verifies storage',async()=>{const r=await request(app).get('/api/health');assert.equal(r.status,200);assert.equal(r.body.status,'ok')});
-test('registration validates input',async()=>{const r=await request(app).post('/api/auth/register').send({name:'A',email:'bad',password:'short'});assert.equal(r.status,400)});
-test('registration returns public user, JWT and expiry',async()=>{const r=await request(app).post('/api/auth/register').send({name:'Shop Owner',email:'OWNER@example.com',password:'correct-horse-123'});assert.equal(r.status,201);token=r.body.accessToken;user=r.body.user;assert.equal(user.email,'owner@example.com');assert.ok(r.body.expiresAt);assert.equal(user.password_hash,undefined);assert.equal(jwt.verify(token,settings.secret).sub,user.id)});
-test('duplicate registration fails',async()=>{const r=await request(app).post('/api/auth/register').send({name:'Shop Owner',email:user.email,password:'correct-horse-123'});assert.equal(r.status,409)});
-test('wrong password rejected and valid login succeeds',async()=>{assert.equal((await request(app).post('/api/auth/login').send({email:user.email,password:'wrong'})).status,401);assert.equal((await request(app).post('/api/auth/login').send({email:user.email,password:'correct-horse-123'})).status,200)});
-test('protected identity requires a valid token',async()=>{assert.equal((await request(app).get('/api/auth/me')).status,401);assert.equal((await request(app).get('/api/auth/me').auth(token,{type:'bearer'})).body.user.id,user.id);assert.equal((await request(app).get('/api/auth/me').auth('tampered',{type:'bearer'})).status,401)});
-test('expired tokens are rejected',async()=>{const expired=jwt.sign({},settings.secret,{algorithm:'HS256',subject:user.id,issuer:settings.issuer,audience:settings.audience,expiresIn:-1});const r=await request(app).get('/api/products').auth(expired,{type:'bearer'});assert.equal(r.status,401);assert.equal(r.body.code,'TOKEN_EXPIRED')});
-test('inventory requires authentication',async()=>{for(const method of ['get','post','put','delete']){const url=['put','delete'].includes(method)?'/api/products/missing':'/api/products';assert.equal((await request(app)[method](url).send(product)).status,401)}});
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import request from "supertest";
+import jwt from "jsonwebtoken";
+import { createApp } from "../server/app.js";
+import { createStore } from "../server/store.js";
+import { config } from "../server/config.js";
+let store, app, token, user, otherToken;
+const settings = config({
+  secret: "test-secret-that-is-at-least-32-characters",
+  rateLimit: 1000,
+});
+const product = {
+  name: "Oat milk",
+  sku: "OAT-01",
+  category: "Beverages",
+  quantity: 12,
+  threshold: 5,
+  price: 200.5,
+  expiry: "2027-01-01",
+  supplier: "Green Grove",
+};
+before(async () => {
+  store = await createStore({ databaseUrl: null, filename: ":memory:" });
+  app = createApp(store, settings);
+});
+after(async () => store.close());
+test("health verifies storage", async () => {
+  const r = await request(app).get("/api/health");
+  assert.equal(r.status, 200);
+  assert.equal(r.body.status, "ok");
+});
+test("registration validates input", async () => {
+  const r = await request(app)
+    .post("/api/auth/register")
+    .send({ name: "A", email: "bad", password: "short" });
+  assert.equal(r.status, 400);
+});
+test("registration returns public user, JWT and expiry", async () => {
+  const r = await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Shop Owner",
+      email: "OWNER@example.com",
+      password: "correct-horse-123",
+    });
+  assert.equal(r.status, 201);
+  token = r.body.accessToken;
+  user = r.body.user;
+  assert.equal(user.email, "owner@example.com");
+  assert.ok(r.body.expiresAt);
+  assert.equal(user.password_hash, undefined);
+  assert.equal(jwt.verify(token, settings.secret).sub, user.id);
+});
+test("duplicate registration fails", async () => {
+  const r = await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Shop Owner",
+      email: user.email,
+      password: "correct-horse-123",
+    });
+  assert.equal(r.status, 409);
+});
+test("wrong password rejected and valid login succeeds", async () => {
+  assert.equal(
+    (
+      await request(app)
+        .post("/api/auth/login")
+        .send({ email: user.email, password: "wrong" })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request(app)
+        .post("/api/auth/login")
+        .send({ email: user.email, password: "correct-horse-123" })
+    ).status,
+    200,
+  );
+});
+test("protected identity requires a valid token", async () => {
+  assert.equal((await request(app).get("/api/auth/me")).status, 401);
+  assert.equal(
+    (await request(app).get("/api/auth/me").auth(token, { type: "bearer" }))
+      .body.user.id,
+    user.id,
+  );
+  assert.equal(
+    (
+      await request(app)
+        .get("/api/auth/me")
+        .auth("tampered", { type: "bearer" })
+    ).status,
+    401,
+  );
+});
+test("expired tokens are rejected", async () => {
+  const expired = jwt.sign({}, settings.secret, {
+    algorithm: "HS256",
+    subject: user.id,
+    issuer: settings.issuer,
+    audience: settings.audience,
+    expiresIn: -1,
+  });
+  const r = await request(app)
+    .get("/api/products")
+    .auth(expired, { type: "bearer" });
+  assert.equal(r.status, 401);
+  assert.equal(r.body.code, "TOKEN_EXPIRED");
+});
+test("inventory requires authentication", async () => {
+  for (const method of ["get", "post", "put", "delete"]) {
+    const url = ["put", "delete"].includes(method)
+      ? "/api/products/missing"
+      : "/api/products";
+    assert.equal((await request(app)[method](url).send(product)).status, 401);
+  }
+});
 let id;
-test('create, list, update product and reject duplicate SKU',async()=>{const r=await request(app).post('/api/products').auth(token,{type:'bearer'}).send(product);assert.equal(r.status,201);id=r.body.product.id;assert.equal((await request(app).get('/api/products').auth(token,{type:'bearer'})).body.products.length,1);assert.equal((await request(app).post('/api/products').auth(token,{type:'bearer'}).send(product)).status,409);const u=await request(app).put(`/api/products/${id}`).auth(token,{type:'bearer'}).send({...product,quantity:3});assert.equal(u.body.product.quantity,3)});
-test('reject negative stock, invalid dates, and injected fields',async()=>{for(const body of [{...product,quantity:-1},{...product,expiry:'2027-02-30'},{...product,user_id:'intruder'}])assert.equal((await request(app).post('/api/products').auth(token,{type:'bearer'}).send(body)).status,400)});
-test('accounts cannot read, change or delete another account inventory',async()=>{const r=await request(app).post('/api/auth/register').send({name:'Other Shop',email:'other@example.com',password:'correct-horse-456'});otherToken=r.body.accessToken;assert.deepEqual((await request(app).get('/api/products').auth(otherToken,{type:'bearer'})).body.products,[]);assert.equal((await request(app).put(`/api/products/${id}`).auth(otherToken,{type:'bearer'}).send(product)).status,404);assert.equal((await request(app).delete(`/api/products/${id}`).auth(otherToken,{type:'bearer'})).status,404)});
-test('deletion removes only the owned product',async()=>{assert.equal((await request(app).delete(`/api/products/${id}`).auth(token,{type:'bearer'})).status,200);assert.equal((await request(app).get('/api/products').auth(token,{type:'bearer'})).body.products.length,0)});
-test('logout revokes the token on the server',async()=>{assert.equal((await request(app).post('/api/auth/logout').auth(token,{type:'bearer'})).status,200);assert.equal((await request(app).get('/api/auth/me').auth(token,{type:'bearer'})).status,401)});
+test("create, list, update product and reject duplicate SKU", async () => {
+  const r = await request(app)
+    .post("/api/products")
+    .auth(token, { type: "bearer" })
+    .send(product);
+  assert.equal(r.status, 201);
+  id = r.body.product.id;
+  assert.equal(
+    (await request(app).get("/api/products").auth(token, { type: "bearer" }))
+      .body.products.length,
+    1,
+  );
+  assert.equal(
+    (
+      await request(app)
+        .post("/api/products")
+        .auth(token, { type: "bearer" })
+        .send(product)
+    ).status,
+    409,
+  );
+  const u = await request(app)
+    .put(`/api/products/${id}`)
+    .auth(token, { type: "bearer" })
+    .send({ ...product, quantity: 3 });
+  assert.equal(u.body.product.quantity, 3);
+});
+test("reject negative stock, invalid dates, and injected fields", async () => {
+  for (const body of [
+    { ...product, quantity: -1 },
+    { ...product, expiry: "2027-02-30" },
+    { ...product, user_id: "intruder" },
+  ])
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/products")
+          .auth(token, { type: "bearer" })
+          .send(body)
+      ).status,
+      400,
+    );
+});
+test("accounts cannot read, change or delete another account inventory", async () => {
+  const r = await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Other Shop",
+      email: "other@example.com",
+      password: "correct-horse-456",
+    });
+  otherToken = r.body.accessToken;
+  assert.deepEqual(
+    (
+      await request(app)
+        .get("/api/products")
+        .auth(otherToken, { type: "bearer" })
+    ).body.products,
+    [],
+  );
+  assert.equal(
+    (
+      await request(app)
+        .put(`/api/products/${id}`)
+        .auth(otherToken, { type: "bearer" })
+        .send(product)
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(app)
+        .delete(`/api/products/${id}`)
+        .auth(otherToken, { type: "bearer" })
+    ).status,
+    404,
+  );
+});
+test("deletion removes only the owned product", async () => {
+  assert.equal(
+    (
+      await request(app)
+        .delete(`/api/products/${id}`)
+        .auth(token, { type: "bearer" })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request(app).get("/api/products").auth(token, { type: "bearer" }))
+      .body.products.length,
+    0,
+  );
+});
+test("logout revokes the token on the server", async () => {
+  assert.equal(
+    (
+      await request(app)
+        .post("/api/auth/logout")
+        .auth(token, { type: "bearer" })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request(app).get("/api/auth/me").auth(token, { type: "bearer" }))
+      .status,
+    401,
+  );
+});

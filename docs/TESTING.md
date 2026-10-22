@@ -20,27 +20,37 @@ Run `npm test` for 13 API integration tests against an isolated in-memory databa
 
 `npm run build` compiles the React frontend for production.
 
-## Manual browser checklist
+## Live browser checks
 
-Browser automation could not access the local preview in the authoring environment. The responsive styles and interactions are implemented, but the following checks still require a browser pass; they are not recorded as completed:
+The initial local browser preview was unavailable. Subsequent checks ran against the deployed HTTPS application at https://stockwise-rachit.onrender.com.
 
-- At 1440px: register, add a product, edit it, search, filter and export CSV.
-- Reload a protected route and confirm the session is restored from the API.
-- Log out, then enter `/app/inventory` directly; expect a redirect to login.
-- Open a second account and confirm its inventory starts empty.
-- At 390px and 360px: open the navigation drawer, use inventory cards, add/edit products, and inspect expiry watch.
-- Toggle both themes, reload and confirm the preference remains.
-- Navigate with a keyboard, inspect focus indicators, and close dialogs with Escape.
-- Test the empty inventory, wrong-password, duplicate-email, duplicate-SKU, expired-session and network-error states.
+Verified in the browser:
 
-## Screenshots for submission
+- Registration creates an account and opens the protected workspace.
+- A second account starts with an empty inventory.
+- Sample inventory loads into the signed-in account.
+- A product quantity changed from 8 to 9 and the updated value appeared in search.
+- Searching for `cold` returns one matching product.
+- Category filtering narrows eight products to three beverages.
+- CSV export produces a downloadable file.
+- Product creation works from the 360px mobile form.
+- Wrong-password login shows a clear error; correct credentials open the workspace.
+- Logout followed by a direct protected-route visit redirects to login.
+- Desktop light/dark themes render correctly.
+- Mobile inventory uses stacked cards at 390px.
+- Mobile navigation opens and the expiry view is reachable.
+- The expiry timeline renders at 360px.
+- Document width equals viewport width at 390px and 360px (no horizontal page overflow).
 
-Capture actual browser screenshots after that manual pass and place them in `docs/screenshots/`:
+Saved evidence in `docs/screenshots/`:
 
 - `registration.png`
 - `login.png`
 - `dashboard-light.png`
 - `dashboard-dark.png`
 - `mobile-inventory.png`
+- `mobile-expiry.png`
 
-The README does not embed placeholder screenshots or claim they have been captured.
+## Limits
+
+API tests cover invalid credentials, duplicate emails/SKUs, invalid input, expired tokens, revocation and account isolation. Cross-browser, physical-device, offline, full screen-reader and comprehensive keyboard testing have not been completed. Mobile checks used browser viewport emulation, not physical phones.

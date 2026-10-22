@@ -8,7 +8,8 @@ export async function createStore({
 } = {}) {
   let db, query;
   const schema = process.env.DATABASE_SCHEMA || "stockwise";
-  if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema)) throw new Error("Invalid DATABASE_SCHEMA.");
+  if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
+    throw new Error("Invalid DATABASE_SCHEMA.");
   if (databaseUrl) {
     const connection = new URL(databaseUrl);
     // Require certificate and hostname verification for hosted TLS connections.
@@ -47,7 +48,9 @@ export async function createStore({
   await query(
     "CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at BIGINT NOT NULL)",
   );
-  await query("CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, sku TEXT NOT NULL, category TEXT NOT NULL, quantity INTEGER NOT NULL, threshold INTEGER NOT NULL, price REAL NOT NULL, expiry TEXT NOT NULL, supplier TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(user_id, sku))");
+  await query(
+    "CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, sku TEXT NOT NULL, category TEXT NOT NULL, quantity INTEGER NOT NULL, threshold INTEGER NOT NULL, price REAL NOT NULL, expiry TEXT NOT NULL, supplier TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(user_id, sku))",
+  );
   return {
     query,
     ping: () => query("SELECT 1 AS ready"),

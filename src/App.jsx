@@ -1,60 +1,1511 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {BrowserRouter,Routes,Route,Navigate,NavLink,Link,useNavigate} from 'react-router-dom';
-import {Package,Sun,Moon,ArrowUpRight,ArrowRight,Plus,Search,LayoutDashboard,Boxes,Clock3,SlidersHorizontal,LogOut,ChevronRight,ChevronDown,X,Download,TriangleAlert,Check,CheckCheck,Leaf,RefreshCw,Pencil,Trash2,Menu,ShieldCheck,ArrowDown,Archive,LoaderCircle,Mail} from 'lucide-react';
-import {AuthProvider,useAuth} from './context/AuthContext';
-import ProtectedRoute from './routes/ProtectedRoute';
-import LoginForm from './components/Auth/LoginForm';
-import RegisterForm from './components/Auth/RegisterForm';
-import {api} from './services/api';
-const categories=['Groceries','Beverages','Personal care','Household','Other'];
-const today=()=>new Date().toLocaleDateString('en-CA');
-const dayCount=date=>date?Math.round((new Date(date+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000):Infinity;
-const expiryLabel=p=>dayCount(p.expiry)<0?'Expired':dayCount(p.expiry)===0?'Expires today':dayCount(p.expiry)<=30?`${dayCount(p.expiry)} days left`:'In date';
-const status=p=>dayCount(p.expiry)<0?'Expired':p.quantity===0?'Out of stock':p.quantity<=p.threshold?'Low stock':'Healthy';
-const money=(v,currency='INR')=>new Intl.NumberFormat('en-IN',{style:'currency',currency,maximumFractionDigits:0}).format(v);
-const dateLabel=d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'No expiry';
-const emptyProduct={name:'',sku:'',category:'Groceries',quantity:0,threshold:10,price:0,expiry:'',supplier:''};
-function Brand(){return <Link to="/app" className="brand"><span className="brand-symbol"><Package size={24} strokeWidth={1.7}/></span>stockwise<span className="brand-period">.</span></Link>}
-function ThemeButton({theme,setTheme}){return <button className="icon-button theme-button" onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label={`Switch to ${theme==='dark'?'light':'dark'} theme`}>{theme==='dark'?<Sun size={19}/>:<Moon size={19}/>}</button>}
-function PublicPage({register,theme,setTheme}){const {user,loading}=useAuth();if(loading)return <div className="page-loading">Checking session…</div>;if(user)return <Navigate to="/app" replace/>;return <><header className="public-header"><Brand/><div className="header-right"><span>YOUR BUSINESS, IN BALANCE</span><ThemeButton {...{theme,setTheme}}/></div></header>{register?<RegisterForm/>:<LoginForm/>}<footer className="public-footer"><span>© {new Date().getFullYear()} StockWise</span><span>Keep the good things in stock.</span></footer></>}
-function ProductModal({product,onClose,onSave}){
- const [value,setValue]=useState(product||emptyProduct),[busy,setBusy]=useState(false),[error,setError]=useState(''),ref=useRef(null),previous=useRef(document.activeElement);
- useEffect(()=>{const old=document.body.style.overflow;document.body.style.overflow='hidden';ref.current?.querySelector('input')?.focus();return()=>{document.body.style.overflow=old;previous.current?.focus()}},[]);
- function keydown(e){if(e.key==='Escape'&&!busy)onClose();if(e.key==='Tab'){const nodes=[...ref.current.querySelectorAll('button:not(:disabled),input,select')],first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}
- const field=(name,label,type='text',extra={})=><label>{label}<input name={name} type={type} value={value[name]} onChange={e=>setValue({...value,[name]:type==='number'?e.target.value:e.target.value})} {...extra}/></label>;
- async function submit(e){e.preventDefault();setBusy(true);setError('');try{await onSave({...value,quantity:Number(value.quantity),threshold:Number(value.threshold),price:Number(value.price)});onClose()}catch(e){setError(e.message);setBusy(false)}}
- return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose()}}><section className="modal" ref={ref} onKeyDown={keydown} role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">YOUR INVENTORY</span><h2 id="modal-title">{product?'A little stock update.':'Make room for something new.'}</h2></div><button className="icon-button" onClick={onClose} disabled={busy} aria-label="Close"><X/></button></div><form onSubmit={submit}><div className="form-grid">{field('name','Product name','text',{required:true,minLength:2,maxLength:100})}{field('sku','SKU / product code','text',{required:true,maxLength:40})}<label>Category<select value={value.category} onChange={e=>setValue({...value,category:e.target.value})}>{categories.map(c=><option key={c}>{c}</option>)}</select></label>{field('supplier','Supplier','text',{maxLength:100})}{field('quantity','Units in stock','number',{required:true,min:0,max:1000000,step:1})}{field('threshold','Low-stock threshold','number',{required:true,min:0,max:1000000,step:1})}{field('price','Unit cost','number',{required:true,min:0,max:10000000,step:'0.01'})}{field('expiry','Expiry date','date')}</div><p className="helper">Leave expiry blank for products without an expiry date.</p>{error&&<div className="form-error" role="alert">{error}</div>}<div className="modal-actions"><button type="button" className="button secondary" onClick={onClose} disabled={busy}>Cancel</button><button className="button primary" disabled={busy}>{busy?'Saving…':product?'Save changes':'Add product'}<ArrowRight size={17}/></button></div></form></section></div>
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  NavLink,
+  Link,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import {
+  Package,
+  Sun,
+  Moon,
+  ArrowUpRight,
+  ArrowRight,
+  Plus,
+  Search,
+  LayoutDashboard,
+  Boxes,
+  Clock3,
+  SlidersHorizontal,
+  LogOut,
+  ChevronRight,
+  X,
+  Download,
+  TriangleAlert,
+  Check,
+  CheckCheck,
+  Leaf,
+  Pencil,
+  Trash2,
+  Menu,
+  ShieldCheck,
+  Archive,
+  LoaderCircle,
+} from "lucide-react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import LoginForm from "./components/Auth/LoginForm";
+import RegisterForm from "./components/Auth/RegisterForm";
+import { api } from "./services/api";
+const categories = [
+  "Groceries",
+  "Beverages",
+  "Personal care",
+  "Household",
+  "Other",
+];
+const today = () => new Date().toLocaleDateString("en-CA");
+const dayCount = (date) =>
+  date
+    ? Math.round(
+        (new Date(date + "T00:00:00") - new Date(today() + "T00:00:00")) /
+          86400000,
+      )
+    : Infinity;
+const expiryLabel = (p) =>
+  dayCount(p.expiry) < 0
+    ? "Expired"
+    : dayCount(p.expiry) === 0
+      ? "Expires today"
+      : dayCount(p.expiry) <= 30
+        ? `${dayCount(p.expiry)} days left`
+        : "In date";
+const status = (p) =>
+  dayCount(p.expiry) < 0
+    ? "Expired"
+    : p.quantity === 0
+      ? "Out of stock"
+      : p.quantity <= p.threshold
+        ? "Low stock"
+        : "Healthy";
+const money = (v, currency = "INR") =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(v);
+const dateLabel = (d) =>
+  d
+    ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "No expiry";
+const emptyProduct = {
+  name: "",
+  sku: "",
+  category: "Groceries",
+  quantity: 0,
+  threshold: 10,
+  price: 0,
+  expiry: "",
+  supplier: "",
+};
+function Brand() {
+  return (
+    <Link to="/app" className="brand">
+      <span className="brand-symbol">
+        <Package size={24} strokeWidth={1.7} />
+      </span>
+      stockwise<span className="brand-period">.</span>
+    </Link>
+  );
 }
-function ProductMark({product}){return <span className={`product-mark cat-${categories.indexOf(product.category)}`}><Package size={21} strokeWidth={1.5}/></span>}
-function ProductTable({products,onEdit,onDelete,currency}){return <div className="table-wrap"><table><thead><tr><th>PRODUCT / SKU</th><th>IN STOCK</th><th>UNIT COST</th><th>EXPIRY DATE</th><th>STATUS</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{products.map(p=><tr key={p.id}><td><div className="product-cell"><ProductMark product={p}/><div><strong>{p.name}</strong><small>{p.sku} <span>· {p.category}</span></small></div></div></td><td data-label="In stock"><strong className={p.quantity<=p.threshold?'warning-text':''}>{p.quantity}</strong> <small>units</small></td><td data-label="Unit cost">{money(p.price,currency)}</td><td data-label="Expiry">{dateLabel(p.expiry)}{dayCount(p.expiry)<=30&&<small className="expiry-small">{expiryLabel(p)}</small>}</td><td data-label="Status"><span className={`badge ${status(p)==='Healthy'?'healthy':status(p)==='Expired'?'danger':'warning'}`}><i/>{status(p)}</span></td><td><div className="row-actions"><button className="icon-button" aria-label={`Edit ${p.name}`} onClick={()=>onEdit(p)}><Pencil size={16}/></button><button className="icon-button delete-button" aria-label={`Delete ${p.name}`} onClick={()=>onDelete(p)}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div>}
-function Empty({onAdd,filtered=false}){return <div className="empty-state"><Archive size={36} strokeWidth={1.2}/><h3>{filtered?'Nothing on this shelf.':'Your next chapter starts here.'}</h3><p>{filtered?'Try another search or adjust your filters.':'Add your first product to see your stockroom come to life.'}</p>{!filtered&&<button className="button primary" onClick={onAdd}><Plus size={17}/> Add first product</button>}</div>}
-function Workspace({theme,setTheme}){
- const {user,logout}=useAuth(),navigate=useNavigate();const [products,setProducts]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[toast,setToast]=useState(''),[modal,setModal]=useState(undefined),[removing,setRemoving]=useState(null),[deleteBusy,setDeleteBusy]=useState(false),[menu,setMenu]=useState(false),[search,setSearch]=useState(''),[category,setCategory]=useState('All categories'),[filter,setFilter]=useState('All stock'),[sort,setSort]=useState('updated'),[currency,setCurrency]=useState(()=>localStorage.getItem('stockwise.currency')||'INR'),[seeding,setSeeding]=useState(false);
- const path=window.location.pathname,view=path.endsWith('/inventory')?'inventory':path.endsWith('/expiry')?'expiry':path.endsWith('/settings')?'settings':'overview';
- const load=async()=>{setLoading(true);setError('');try{setProducts((await api('/products')).products)}catch(e){setError(e.message)}finally{setLoading(false)}};
- useEffect(()=>{load()},[]);useEffect(()=>{setMenu(false)},[view]);useEffect(()=>{const close=e=>{if(e.key==='Escape')setMenu(false)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(timer)},[toast]);
- useEffect(()=>{localStorage.setItem('stockwise.currency',currency)},[currency]);
- const totalUnits=products.reduce((s,p)=>s+p.quantity,0),value=products.reduce((s,p)=>s+p.quantity*p.price,0),low=products.filter(p=>p.quantity<=p.threshold),expiring=products.filter(p=>p.expiry&&dayCount(p.expiry)>=0&&dayCount(p.expiry)<=30),expired=products.filter(p=>p.expiry&&dayCount(p.expiry)<0),healthy=products.filter(p=>status(p)==='Healthy').length;
- const visible=useMemo(()=>products.filter(p=>(`${p.name} ${p.sku} ${p.supplier}`.toLowerCase().includes(search.toLowerCase()))&&(category==='All categories'||p.category===category)&&(filter==='All stock'||filter==='Low stock'&&p.quantity<=p.threshold||filter==='Healthy'&&status(p)==='Healthy'||filter==='Expired'&&dayCount(p.expiry)<0||filter==='Expiring soon'&&dayCount(p.expiry)>=0&&dayCount(p.expiry)<=30)).sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='quantity'?a.quantity-b.quantity:sort==='expiry'?dayCount(a.expiry)-dayCount(b.expiry):b.updated_at.localeCompare(a.updated_at)),[products,search,category,filter,sort]);
- async function save(data){const {id}=data;const body=Object.fromEntries(Object.keys(emptyProduct).map(k=>[k,data[k]]));const result=await api(id?`/products/${id}`:'/products',{method:id?'PUT':'POST',body});setProducts(prev=>[result.product,...prev.filter(p=>p.id!==id)]);setToast(id?'Product updated. All in order.':'Product added to your stockroom.')}
- async function remove(){setDeleteBusy(true);try{await api(`/products/${removing.id}`,{method:'DELETE'});setProducts(prev=>prev.filter(p=>p.id!==removing.id));setRemoving(null);setToast('Product removed.')}catch(e){setError(e.message);setRemoving(null)}finally{setDeleteBusy(false)}}
- function exportCSV(){const rows=[['Name','SKU','Category','Quantity','Low stock threshold','Unit cost',`Currency (${currency})`,'Expiry','Supplier'],...visible.map(p=>[p.name,p.sku,p.category,p.quantity,p.threshold,p.price,currency,p.expiry,p.supplier])];const clean=v=>{let s=String(v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};const blob=new Blob(['\uFEFF'+rows.map(r=>r.map(clean).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`stockwise-inventory-${today()}.csv`;a.click();URL.revokeObjectURL(url);setToast('Inventory exported as CSV.')}
- async function sample(){setSeeding(true);setError('');const offset=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};const samples=[['Organic rolled oats','SW-001','Groceries',48,12,185,65,'Harvest Foods'],['Cold brew concentrate','SW-002','Beverages',8,15,320,12,'Bean & Co.'],['Botanical hand wash','SW-003','Personal care',36,10,145,180,'Daily Ritual'],['Almond milk · original','SW-004','Beverages',24,10,220,5,'Green Grove'],['Multigrain crackers','SW-005','Groceries',6,12,95,24,'Harvest Foods'],['Bamboo dish brush','SW-006','Household',30,8,165,null,'Earth Supply'],['Wildflower honey','SW-007','Groceries',18,6,340,240,'Green Grove'],['Herbal tea collection','SW-008','Beverages',0,10,260,-3,'Leaf House']];try{for(const [name,sku,category,quantity,threshold,price,days,supplier]of samples){if(!products.some(p=>p.sku===sku))await api('/products',{method:'POST',body:{name,sku,category,quantity,threshold,price,expiry:days===null?'':offset(days),supplier}})}await load();setToast('Sample products added. Explore your stockroom.')}catch(e){await load();setError(e.message)}finally{setSeeding(false)}}
- async function signout(){try{await logout();navigate('/login')}catch(e){setError(e.message)}}
- const add=()=>setModal(null);
- const navItems=[['/app',LayoutDashboard,'Overview'],['/app/inventory',Boxes,'Inventory'],['/app/expiry',Clock3,'Expiry watch'],['/app/settings',SlidersHorizontal,'Preferences']];
- return <div className="workspace"><aside id="workspace-navigation" className={`sidebar ${menu?'is-open':''}`}><Brand/><div className="workspace-label"><span className="live-dot"/> THE STOCKROOM <span>01</span></div><nav aria-label="Main navigation">{navItems.map(([to,Icon,label])=><NavLink key={to} to={to} end><Icon size={19}/>{label}{label==='Expiry watch'&&expiring.length+expired.length>0&&<span className="nav-count">{expiring.length+expired.length}</span>}</NavLink>)}</nav><div className="sidebar-note"><Leaf size={24} strokeWidth={1.4}/><h3>A little less waste.<br/>A lot more possibility.</h3><p>Keep an eye on expiry dates.<br/>Give every product its moment.</p><Link to="/app/expiry">Check the shelf <ArrowUpRight size={17}/></Link></div><div className="sidebar-user"><span className="avatar">{user.name.slice(0,1).toUpperCase()}</span><div><strong>{user.name}</strong><small>Workspace owner</small></div><button className="icon-button" aria-label="Sign out" onClick={signout}><LogOut size={18}/></button></div></aside>{menu&&<button className="menu-scrim" aria-label="Close navigation" onClick={()=>setMenu(false)}/>}
- <div className="workspace-body"><header className="workspace-header"><div className="breadcrumb"><button className="icon-button mobile-menu" aria-label="Open navigation" aria-expanded={menu} aria-controls="workspace-navigation" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><span>Workspace</span><ChevronRight size={14}/><strong>{view==='overview'?'Overview':view==='inventory'?'Inventory':view==='expiry'?'Expiry watch':'Preferences'}</strong></div><div className="header-right"><span className="today-date">{new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span><span className="header-divider"/><ThemeButton {...{theme,setTheme}}/><span className="avatar small">{user.name.slice(0,1).toUpperCase()}</span></div></header>
- <main id="main-content"><div className="page-heading"><div><div className="eyebrow">{view==='overview'?'A CLEARER VIEW OF YOUR BUSINESS':view==='inventory'?'EVERY ITEM. EVERY DETAIL.':view==='expiry'?'GOOD PRODUCTS DESERVE GOOD TIMING':'MAKE YOURSELF AT HOME'}</div><h1>{view==='overview'?'Every shelf, in balance.':view==='inventory'?'Your inventory, at a glance.':view==='expiry'?'A watchful eye on freshness.':'Your workspace. Your way.'}</h1><p>{view==='overview'?`Welcome back, ${user.name.split(' ')[0]}. Here’s what’s happening in your stockroom.`:view==='inventory'?'A place for everything you keep in stock.':view==='expiry'?'Act early. Reduce waste. Keep the good things moving.':'The small details that make the workspace yours.'}</p></div>{view!=='settings'&&<button className="button primary" onClick={add}><Plus size={18}/> Add product</button>}</div>
- {error&&<div className="error-banner" role="alert">{error}<button className="text-button" onClick={load}>Try again</button><button className="icon-button" onClick={()=>setError('')} aria-label="Dismiss error"><X size={16}/></button></div>}
- {loading?<div className="page-loading" role="status"><LoaderCircle className="spin"/> Taking stock…</div>:<>
- {view==='overview'&&<><section className="metrics" aria-label="Inventory summary"><article><div className="metric-top">TOTAL PRODUCTS<Boxes size={18}/></div><div className="metric-value">{String(products.length).padStart(2,'0')}<span>SKUs</span></div><div className="metric-bottom"><span className="dot green"/>{totalUnits.toLocaleString('en-IN')} units across your shelves</div></article><article><div className="metric-top">INVENTORY VALUE<ArrowUpRight size={18}/></div><div className="metric-value money-value">{money(value,currency)}</div><div className="metric-bottom">Based on current unit costs</div></article><article className="metric-alert"><div className="metric-top">LOW STOCK<TriangleAlert size={18}/></div><div className="metric-value">{String(low.length).padStart(2,'0')}<span>items</span></div><button className="metric-link" onClick={()=>{setFilter('Low stock');navigate('/app/inventory')}}>Time for a restock <ArrowRight size={15}/></button></article><article><div className="metric-top">EXPIRING SOON<Clock3 size={18}/></div><div className="metric-value">{String(expiring.length).padStart(2,'0')}<span>items</span></div><div className="metric-bottom">Within the next 30 days</div></article></section><div className="overview-grid"><section className="panel stock-overview"><div className="panel-header"><div><span className="eyebrow">THE BIG PICTURE</span><h2>A well-balanced stockroom.</h2></div><span className="subtle-tag">LIVE INVENTORY</span></div><div className="stock-health"><div className="health-number">{products.length?Math.round(healthy/products.length*100):0}<span>%</span><small>of products in healthy stock</small></div><div className="health-details"><div className="health-track">{[healthy,products.filter(p=>status(p)==='Low stock'||status(p)==='Out of stock').length,expired.length].map((n,i)=><div key={i} className={`segment segment-${i}`} style={{width:`${products.length?n/products.length*100:0}%`}}/>)}</div><div className="health-legend"><span><i className="dot green"/>Healthy <b>{healthy}</b></span><span><i className="dot amber"/>Low / empty <b>{products.filter(p=>['Low stock','Out of stock'].includes(status(p))).length}</b></span><span><i className="dot coral"/>Expired <b>{expired.length}</b></span></div><p>A healthy shelf starts with the right amount of everything.</p></div></div><div className="category-strip">{categories.filter(c=>products.some(p=>p.category===c)).map(c=><span key={c}>{c}<b>{products.filter(p=>p.category===c).length}</b></span>)}{products.length===0&&<span>Your categories will appear as you add products.</span>}</div></section><section className="attention-panel"><div className="attention-title"><span className="eyebrow">A HEADS-UP</span><ArrowUpRight size={23}/></div><h2>{expired.length?'Some stock needs a closer look.':low.length?'A few shelves need a little love.':'Looking good on your shelves.'}</h2><p>{expired.length?`${expired.length} expired ${expired.length===1?'product needs':'products need'} attention. Review them before selling.`:low.length?`${low.length} ${low.length===1?'product is':'products are'} running low. Plan your next order before the shelf runs empty.`:'Keep adding products and checking expiry dates to stay one step ahead.'}</p><button onClick={()=>{setFilter(expired.length?'Expired':'Low stock');navigate('/app/inventory')}}>Take a closer look <ArrowRight size={17}/></button><span className="attention-art" aria-hidden="true">↗</span></section></div><section className="panel"><div className="panel-header"><div><span className="eyebrow">ON YOUR SHELVES</span><h2>Recently updated.</h2></div><Link className="text-link" to="/app/inventory">View all inventory <ArrowUpRight size={16}/></Link></div>{products.length?<ProductTable products={products.slice(0,5)} onEdit={setModal} onDelete={setRemoving} currency={currency}/>:<Empty onAdd={add}/>}</section>{products.length===0&&<div className="sample-banner"><div><strong>Want to look around first?</strong><span>Add eight sample products to try every inventory feature.</span></div><button className="button secondary" onClick={sample} disabled={seeding}>{seeding?'Adding samples…':'Load sample inventory'}<ArrowUpRight size={16}/></button></div>}</>}
- {view==='inventory'&&<section className="panel inventory-panel"><div className="inventory-toolbar"><div className="input-icon search-box"><Search size={18}/><input aria-label="Search inventory" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, SKU or supplier…"/>{search&&<button className="icon-button" onClick={()=>setSearch('')} aria-label="Clear search"><X size={15}/></button>}</div><button className="button secondary" onClick={exportCSV} disabled={!visible.length}><Download size={16}/>Export CSV</button></div><div className="filter-toolbar"><select aria-label="Filter category" value={category} onChange={e=>setCategory(e.target.value)}>{['All categories',...categories].map(c=><option key={c}>{c}</option>)}</select><select aria-label="Filter stock status" value={filter} onChange={e=>setFilter(e.target.value)}>{['All stock','Healthy','Low stock','Expiring soon','Expired'].map(c=><option key={c}>{c}</option>)}</select><select aria-label="Sort inventory" value={sort} onChange={e=>setSort(e.target.value)}><option value="updated">Recently updated</option><option value="name">Name: A–Z</option><option value="quantity">Lowest stock first</option><option value="expiry">Nearest expiry first</option></select><span>{visible.length} of {products.length} products</span></div>{visible.length?<ProductTable products={visible} onEdit={setModal} onDelete={setRemoving} currency={currency}/>:<Empty onAdd={add} filtered={products.length>0}/>}<div className="table-footer"><span>Keep your stock accurate. Small updates make a difference.</span><span>{totalUnits} TOTAL UNITS</span></div></section>}
- {view==='expiry'&&<><div className="expiry-summary"><div><span className="dot coral"/><strong>{expired.length}</strong> expired</div><div><span className="dot amber"/><strong>{expiring.length}</strong> within 30 days</div><div><span className="dot green"/><strong>{products.filter(p=>p.expiry&&dayCount(p.expiry)>30).length}</strong> in date</div></div><section className="panel"><div className="panel-header"><div><span className="eyebrow">FIRST THINGS FIRST</span><h2>The freshness timeline.</h2></div><span className="subtle-tag">NEXT 30 DAYS + EXPIRED</span></div>{[...expired,...expiring].length?<div className="expiry-list">{[...expired,...expiring].sort((a,b)=>a.expiry.localeCompare(b.expiry)).map(p=><article className="expiry-item" key={p.id}><div className={`expiry-date ${dayCount(p.expiry)<0?'past':''}`}><strong>{new Date(p.expiry+'T00:00:00').getDate()}</strong><span>{new Date(p.expiry+'T00:00:00').toLocaleDateString('en-IN',{month:'short',year:'2-digit'})}</span></div><div className="expiry-product"><strong>{p.name}</strong><small>{p.sku} · {p.quantity} units · {p.supplier||'No supplier'}</small></div><span className={`badge ${dayCount(p.expiry)<0?'danger':'warning'}`}>{expiryLabel(p)}</span><button className="button secondary" onClick={()=>setModal(p)}>Review <ArrowUpRight size={15}/></button></article>)}</div>:<div className="empty-state"><CheckCheck size={38}/><h3>A fresh outlook.</h3><p>No products are expired or expiring within 30 days.</p></div>}</section><div className="tip-note"><Leaf size={22}/><p><strong>A small habit. A meaningful difference.</strong> Rotate products so the earliest expiry dates are at the front of the shelf.</p></div></>}
- {view==='settings'&&<div className="settings-grid"><section className="panel settings-card"><span className="eyebrow">YOUR ACCOUNT</span><h2>The person behind the shelves.</h2><div className="profile-row"><span className="avatar large">{user.name.slice(0,1).toUpperCase()}</span><div><h3>{user.name}</h3><p>{user.email}</p></div></div><div className="setting-detail"><span>Member since</span><strong>{new Date(user.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</strong></div><div className="setting-detail"><span>Workspace access</span><strong><ShieldCheck size={16}/> Authenticated</strong></div><button className="button secondary" onClick={signout}><LogOut size={17}/>Sign out</button></section><section className="panel settings-card"><span className="eyebrow">THE LITTLE DETAILS</span><h2>Set the mood.</h2><p>Choose the appearance that feels right for you.</p><div className="theme-options">{['light','dark'].map(t=><button key={t} className={`theme-option ${theme===t?'selected':''}`} onClick={()=>setTheme(t)}>{t==='light'?<Sun/>:<Moon/>}<span>{t==='light'?'Daylight':'After hours'}</span>{theme===t&&<Check size={17}/>}</button>)}</div><label className="currency-label">Display currency<select value={currency} onChange={e=>setCurrency(e.target.value)}><option value="INR">Indian rupee (₹)</option><option value="USD">US dollar ($)</option><option value="EUR">Euro (€)</option><option value="GBP">British pound (£)</option></select></label><small>Changes the display symbol only. Existing prices are not converted.</small></section></div>}
- </>}
- <footer className="workspace-footer"><span><Package size={14}/> StockWise <span>·</span> Keep the good things in stock.</span><span>BUILT FOR EVERYDAY BUSINESS</span></footer></main></div>
- {modal!==undefined&&<ProductModal product={modal} onClose={()=>setModal(undefined)} onSave={save}/>} {removing&&<DeleteDialog product={removing} busy={deleteBusy} onClose={()=>setRemoving(null)} onConfirm={remove}/>}{toast&&<div className="toast" role="status"><Check size={18}/>{toast}<button className="icon-button" onClick={()=>setToast('')} aria-label="Dismiss notification"><X size={15}/></button></div>}</div>
+function ThemeButton({ theme, setTheme }) {
+  return (
+    <button
+      className="icon-button theme-button"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+    >
+      {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+    </button>
+  );
 }
-function DeleteDialog({product,busy,onClose,onConfirm}){const ref=useRef(null),prior=useRef(document.activeElement);useEffect(()=>{ref.current.focus();return()=>prior.current?.focus()},[]);return <div className="modal-backdrop"><div className="modal delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-title" onKeyDown={e=>{if(e.key==='Escape'&&!busy)onClose();if(e.key==='Tab'){e.preventDefault();const buttons=e.currentTarget.querySelectorAll('button');(document.activeElement===buttons[0]?buttons[1]:buttons[0]).focus()}}}><span className="icon-tile"><Trash2/></span><h2 id="delete-title">Remove this product?</h2><p><strong>{product.name}</strong> will be deleted from your inventory. This cannot be undone.</p><div className="modal-actions"><button ref={ref} disabled={busy} className="button secondary" onClick={onClose}>Keep product</button><button disabled={busy} className="button danger-button" onClick={onConfirm}>{busy?'Removing…':'Remove product'}</button></div></div></div>}
-export default function App(){const[theme,setTheme]=useState(()=>localStorage.getItem('stockwise.theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem('stockwise.theme',theme);document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#171d18':'#f6f7f0'},[theme]);return <AuthProvider><BrowserRouter><a className="skip-link" href="#main-content">Skip to content</a><Routes><Route path="/login" element={<PublicPage {...{theme,setTheme}}/>}/><Route path="/register" element={<PublicPage register {...{theme,setTheme}}/>}/><Route element={<ProtectedRoute/>}><Route path="/app" element={<Workspace {...{theme,setTheme}}/>}/><Route path="/app/inventory" element={<Workspace {...{theme,setTheme}}/>}/><Route path="/app/expiry" element={<Workspace {...{theme,setTheme}}/>}/><Route path="/app/settings" element={<Workspace {...{theme,setTheme}}/>}/></Route><Route path="*" element={<Navigate to="/app" replace/>}/></Routes></BrowserRouter></AuthProvider>}
+function PublicPage({ register, theme, setTheme }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <div className="page-loading">Checking session…</div>;
+  if (user) return <Navigate to={location.state?.from || "/app"} replace />;
+  return (
+    <>
+      <header className="public-header">
+        <Brand />
+        <div className="header-right">
+          <span>YOUR BUSINESS, IN BALANCE</span>
+          <ThemeButton {...{ theme, setTheme }} />
+        </div>
+      </header>
+      {register ? <RegisterForm /> : <LoginForm />}
+      <footer className="public-footer">
+        <span>© {new Date().getFullYear()} StockWise</span>
+        <span>Keep the good things in stock.</span>
+      </footer>
+    </>
+  );
+}
+function ProductModal({ product, onClose, onSave }) {
+  const [value, setValue] = useState(product || emptyProduct),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    ref = useRef(null),
+    previous = useRef(document.activeElement);
+  useEffect(() => {
+    const old = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    ref.current?.querySelector("input")?.focus();
+    return () => {
+      document.body.style.overflow = old;
+      previous.current?.focus();
+    };
+  }, []);
+  function keydown(e) {
+    if (e.key === "Escape" && !busy) onClose();
+    if (e.key === "Tab") {
+      const nodes = [
+          ...ref.current.querySelectorAll("button:not(:disabled),input,select"),
+        ],
+        first = nodes[0],
+        last = nodes.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+  const field = (name, label, type = "text", extra = {}) => (
+    <label>
+      {label}
+      <input
+        name={name}
+        type={type}
+        value={value[name]}
+        onChange={(e) =>
+          setValue({
+            ...value,
+            [name]: e.target.value,
+          })
+        }
+        {...extra}
+      />
+    </label>
+  );
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await onSave({
+        ...value,
+        quantity: Number(value.quantity),
+        threshold: Number(value.threshold),
+        price: Number(value.price),
+      });
+      onClose();
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
+  }
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !busy) onClose();
+      }}
+    >
+      <section
+        className="modal"
+        ref={ref}
+        onKeyDown={keydown}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <div className="modal-heading">
+          <div>
+            <span className="eyebrow">YOUR INVENTORY</span>
+            <h2 id="modal-title">
+              {product
+                ? "A little stock update."
+                : "Make room for something new."}
+            </h2>
+          </div>
+          <button
+            className="icon-button"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close"
+          >
+            <X />
+          </button>
+        </div>
+        <form onSubmit={submit}>
+          <div className="form-grid">
+            {field("name", "Product name", "text", {
+              required: true,
+              minLength: 2,
+              maxLength: 100,
+            })}
+            {field("sku", "SKU / product code", "text", {
+              required: true,
+              maxLength: 40,
+            })}
+            <label>
+              Category
+              <select
+                value={value.category}
+                onChange={(e) =>
+                  setValue({ ...value, category: e.target.value })
+                }
+              >
+                {categories.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            {field("supplier", "Supplier", "text", { maxLength: 100 })}
+            {field("quantity", "Units in stock", "number", {
+              required: true,
+              min: 0,
+              max: 1000000,
+              step: 1,
+            })}
+            {field("threshold", "Low-stock threshold", "number", {
+              required: true,
+              min: 0,
+              max: 1000000,
+              step: 1,
+            })}
+            {field("price", "Unit cost", "number", {
+              required: true,
+              min: 0,
+              max: 10000000,
+              step: "0.01",
+            })}
+            {field("expiry", "Expiry date", "date")}
+          </div>
+          <p className="helper">
+            Leave expiry blank for products without an expiry date.
+          </p>
+          {error && (
+            <div className="form-error" role="alert">
+              {error}
+            </div>
+          )}
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={onClose}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+            <button className="button primary" disabled={busy}>
+              {busy ? "Saving…" : product ? "Save changes" : "Add product"}
+              <ArrowRight size={17} />
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+function ProductMark({ product }) {
+  return (
+    <span
+      className={`product-mark cat-${categories.indexOf(product.category)}`}
+    >
+      <Package size={21} strokeWidth={1.5} />
+    </span>
+  );
+}
+function ProductTable({ products, onEdit, onDelete, currency }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>PRODUCT / SKU</th>
+            <th>IN STOCK</th>
+            <th>UNIT COST</th>
+            <th>EXPIRY DATE</th>
+            <th>STATUS</th>
+            <th>
+              <span className="sr-only">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((p) => (
+            <tr key={p.id}>
+              <td>
+                <div className="product-cell">
+                  <ProductMark product={p} />
+                  <div>
+                    <strong>{p.name}</strong>
+                    <small>
+                      {p.sku} <span>· {p.category}</span>
+                    </small>
+                  </div>
+                </div>
+              </td>
+              <td data-label="In stock">
+                <strong
+                  className={p.quantity <= p.threshold ? "warning-text" : ""}
+                >
+                  {p.quantity}
+                </strong>{" "}
+                <small>units</small>
+              </td>
+              <td data-label="Unit cost">{money(p.price, currency)}</td>
+              <td data-label="Expiry">
+                {dateLabel(p.expiry)}
+                {dayCount(p.expiry) <= 30 && (
+                  <small className="expiry-small">{expiryLabel(p)}</small>
+                )}
+              </td>
+              <td data-label="Status">
+                <span
+                  className={`badge ${status(p) === "Healthy" ? "healthy" : status(p) === "Expired" ? "danger" : "warning"}`}
+                >
+                  <i />
+                  {status(p)}
+                </span>
+              </td>
+              <td>
+                <div className="row-actions">
+                  <button
+                    className="icon-button"
+                    aria-label={`Edit ${p.name}`}
+                    onClick={() => onEdit(p)}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    className="icon-button delete-button"
+                    aria-label={`Delete ${p.name}`}
+                    onClick={() => onDelete(p)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+function Empty({ onAdd, filtered = false }) {
+  return (
+    <div className="empty-state">
+      <Archive size={36} strokeWidth={1.2} />
+      <h3>
+        {filtered ? "Nothing on this shelf." : "Your next chapter starts here."}
+      </h3>
+      <p>
+        {filtered
+          ? "Try another search or adjust your filters."
+          : "Add your first product to see your stockroom come to life."}
+      </p>
+      {!filtered && (
+        <button className="button primary" onClick={onAdd}>
+          <Plus size={17} /> Add first product
+        </button>
+      )}
+    </div>
+  );
+}
+function Workspace({ theme, setTheme }) {
+  const { user, logout } = useAuth(),
+    navigate = useNavigate();
+  const [products, setProducts] = useState([]),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState(""),
+    [toast, setToast] = useState(""),
+    [modal, setModal] = useState(undefined),
+    [removing, setRemoving] = useState(null),
+    [deleteBusy, setDeleteBusy] = useState(false),
+    [menu, setMenu] = useState(false),
+    [search, setSearch] = useState(""),
+    [category, setCategory] = useState("All categories"),
+    [filter, setFilter] = useState("All stock"),
+    [sort, setSort] = useState("updated"),
+    [currency, setCurrency] = useState(
+      () => localStorage.getItem("stockwise.currency") || "INR",
+    ),
+    [seeding, setSeeding] = useState(false);
+  const path = window.location.pathname,
+    view = path.endsWith("/inventory")
+      ? "inventory"
+      : path.endsWith("/expiry")
+        ? "expiry"
+        : path.endsWith("/settings")
+          ? "settings"
+          : "overview";
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setProducts((await api("/products")).products);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  useEffect(() => {
+    setMenu(false);
+  }, [view]);
+  useEffect(() => {
+    const close = (e) => {
+      if (e.key === "Escape") setMenu(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  useEffect(() => {
+    localStorage.setItem("stockwise.currency", currency);
+  }, [currency]);
+  const totalUnits = products.reduce((s, p) => s + p.quantity, 0),
+    value = products.reduce((s, p) => s + p.quantity * p.price, 0),
+    low = products.filter((p) => p.quantity <= p.threshold),
+    expiring = products.filter(
+      (p) => p.expiry && dayCount(p.expiry) >= 0 && dayCount(p.expiry) <= 30,
+    ),
+    expired = products.filter((p) => p.expiry && dayCount(p.expiry) < 0),
+    healthy = products.filter((p) => status(p) === "Healthy").length;
+  const visible = useMemo(
+    () =>
+      products
+        .filter(
+          (p) =>
+            `${p.name} ${p.sku} ${p.supplier}`
+              .toLowerCase()
+              .includes(search.toLowerCase()) &&
+            (category === "All categories" || p.category === category) &&
+            (filter === "All stock" ||
+              (filter === "Low stock" && p.quantity <= p.threshold) ||
+              (filter === "Healthy" && status(p) === "Healthy") ||
+              (filter === "Expired" && dayCount(p.expiry) < 0) ||
+              (filter === "Expiring soon" &&
+                dayCount(p.expiry) >= 0 &&
+                dayCount(p.expiry) <= 30)),
+        )
+        .sort((a, b) =>
+          sort === "name"
+            ? a.name.localeCompare(b.name)
+            : sort === "quantity"
+              ? a.quantity - b.quantity
+              : sort === "expiry"
+                ? dayCount(a.expiry) - dayCount(b.expiry)
+                : b.updated_at.localeCompare(a.updated_at),
+        ),
+    [products, search, category, filter, sort],
+  );
+  async function save(data) {
+    const { id } = data;
+    const body = Object.fromEntries(
+      Object.keys(emptyProduct).map((k) => [k, data[k]]),
+    );
+    const result = await api(id ? `/products/${id}` : "/products", {
+      method: id ? "PUT" : "POST",
+      body,
+    });
+    setProducts((prev) => [result.product, ...prev.filter((p) => p.id !== id)]);
+    setToast(
+      id
+        ? "Product updated. All in order."
+        : "Product added to your stockroom.",
+    );
+  }
+  async function remove() {
+    setDeleteBusy(true);
+    try {
+      await api(`/products/${removing.id}`, { method: "DELETE" });
+      setProducts((prev) => prev.filter((p) => p.id !== removing.id));
+      setRemoving(null);
+      setToast("Product removed.");
+    } catch (e) {
+      setError(e.message);
+      setRemoving(null);
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+  function exportCSV() {
+    const rows = [
+      [
+        "Name",
+        "SKU",
+        "Category",
+        "Quantity",
+        "Low stock threshold",
+        "Unit cost",
+        `Currency (${currency})`,
+        "Expiry",
+        "Supplier",
+      ],
+      ...visible.map((p) => [
+        p.name,
+        p.sku,
+        p.category,
+        p.quantity,
+        p.threshold,
+        p.price,
+        currency,
+        p.expiry,
+        p.supplier,
+      ]),
+    ];
+    const clean = (v) => {
+      let s = String(v);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return '"' + s.replaceAll('"', '""') + '"';
+    };
+    const blob = new Blob(
+        ["\uFEFF" + rows.map((r) => r.map(clean).join(",")).join("\r\n")],
+        { type: "text/csv;charset=utf-8;" },
+      ),
+      url = URL.createObjectURL(blob),
+      a = document.createElement("a");
+    a.href = url;
+    a.download = `stockwise-inventory-${today()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setToast("Inventory exported as CSV.");
+  }
+  async function sample() {
+    setSeeding(true);
+    setError("");
+    const offset = (n) => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return d.toLocaleDateString("en-CA");
+    };
+    const samples = [
+      [
+        "Organic rolled oats",
+        "SW-001",
+        "Groceries",
+        48,
+        12,
+        185,
+        65,
+        "Harvest Foods",
+      ],
+      [
+        "Cold brew concentrate",
+        "SW-002",
+        "Beverages",
+        8,
+        15,
+        320,
+        12,
+        "Bean & Co.",
+      ],
+      [
+        "Botanical hand wash",
+        "SW-003",
+        "Personal care",
+        36,
+        10,
+        145,
+        180,
+        "Daily Ritual",
+      ],
+      [
+        "Almond milk · original",
+        "SW-004",
+        "Beverages",
+        24,
+        10,
+        220,
+        5,
+        "Green Grove",
+      ],
+      [
+        "Multigrain crackers",
+        "SW-005",
+        "Groceries",
+        6,
+        12,
+        95,
+        24,
+        "Harvest Foods",
+      ],
+      [
+        "Bamboo dish brush",
+        "SW-006",
+        "Household",
+        30,
+        8,
+        165,
+        null,
+        "Earth Supply",
+      ],
+      [
+        "Wildflower honey",
+        "SW-007",
+        "Groceries",
+        18,
+        6,
+        340,
+        240,
+        "Green Grove",
+      ],
+      [
+        "Herbal tea collection",
+        "SW-008",
+        "Beverages",
+        0,
+        10,
+        260,
+        -3,
+        "Leaf House",
+      ],
+    ];
+    try {
+      for (const [
+        name,
+        sku,
+        category,
+        quantity,
+        threshold,
+        price,
+        days,
+        supplier,
+      ] of samples) {
+        if (!products.some((p) => p.sku === sku))
+          await api("/products", {
+            method: "POST",
+            body: {
+              name,
+              sku,
+              category,
+              quantity,
+              threshold,
+              price,
+              expiry: days === null ? "" : offset(days),
+              supplier,
+            },
+          });
+      }
+      await load();
+      setToast("Sample products added. Explore your stockroom.");
+    } catch (e) {
+      await load();
+      setError(e.message);
+    } finally {
+      setSeeding(false);
+    }
+  }
+  async function signout() {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  const add = () => setModal(null);
+  const navItems = [
+    ["/app", LayoutDashboard, "Overview"],
+    ["/app/inventory", Boxes, "Inventory"],
+    ["/app/expiry", Clock3, "Expiry watch"],
+    ["/app/settings", SlidersHorizontal, "Preferences"],
+  ];
+  return (
+    <div className="workspace">
+      <aside
+        id="workspace-navigation"
+        className={`sidebar ${menu ? "is-open" : ""}`}
+      >
+        <Brand />
+        <div className="workspace-label">
+          <span className="live-dot" /> THE STOCKROOM <span>01</span>
+        </div>
+        <nav aria-label="Main navigation">
+          {navItems.map(([to, Icon, label]) => (
+            <NavLink key={to} to={to} end>
+              <Icon size={19} />
+              {label}
+              {label === "Expiry watch" &&
+                expiring.length + expired.length > 0 && (
+                  <span className="nav-count">
+                    {expiring.length + expired.length}
+                  </span>
+                )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="sidebar-note">
+          <Leaf size={24} strokeWidth={1.4} />
+          <h3>
+            A little less waste.
+            <br />A lot more possibility.
+          </h3>
+          <p>
+            Keep an eye on expiry dates.
+            <br />
+            Give every product its moment.
+          </p>
+          <Link to="/app/expiry">
+            Check the shelf <ArrowUpRight size={17} />
+          </Link>
+        </div>
+        <div className="sidebar-user">
+          <span className="avatar">{user.name.slice(0, 1).toUpperCase()}</span>
+          <div>
+            <strong>{user.name}</strong>
+            <small>Workspace owner</small>
+          </div>
+          <button
+            className="icon-button"
+            aria-label="Sign out"
+            onClick={signout}
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </aside>
+      {menu && (
+        <button
+          className="menu-scrim"
+          aria-label="Close navigation"
+          onClick={() => setMenu(false)}
+        />
+      )}
+      <div className="workspace-body">
+        <header className="workspace-header">
+          <div className="breadcrumb">
+            <button
+              className="icon-button mobile-menu"
+              aria-label="Open navigation"
+              aria-expanded={menu}
+              aria-controls="workspace-navigation"
+              onClick={() => setMenu(!menu)}
+            >
+              <Menu size={22} />
+            </button>
+            <span>Workspace</span>
+            <ChevronRight size={14} />
+            <strong>
+              {view === "overview"
+                ? "Overview"
+                : view === "inventory"
+                  ? "Inventory"
+                  : view === "expiry"
+                    ? "Expiry watch"
+                    : "Preferences"}
+            </strong>
+          </div>
+          <div className="header-right">
+            <span className="today-date">
+              {new Date().toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+            <span className="header-divider" />
+            <ThemeButton {...{ theme, setTheme }} />
+            <span className="avatar small">
+              {user.name.slice(0, 1).toUpperCase()}
+            </span>
+          </div>
+        </header>
+        <main id="main-content">
+          <div className="page-heading">
+            <div>
+              <div className="eyebrow">
+                {view === "overview"
+                  ? "A CLEARER VIEW OF YOUR BUSINESS"
+                  : view === "inventory"
+                    ? "EVERY ITEM. EVERY DETAIL."
+                    : view === "expiry"
+                      ? "GOOD PRODUCTS DESERVE GOOD TIMING"
+                      : "MAKE YOURSELF AT HOME"}
+              </div>
+              <h1>
+                {view === "overview"
+                  ? "Every shelf, in balance."
+                  : view === "inventory"
+                    ? "Your inventory, at a glance."
+                    : view === "expiry"
+                      ? "A watchful eye on freshness."
+                      : "Your workspace. Your way."}
+              </h1>
+              <p>
+                {view === "overview"
+                  ? `Welcome back, ${user.name.split(" ")[0]}. Here’s what’s happening in your stockroom.`
+                  : view === "inventory"
+                    ? "A place for everything you keep in stock."
+                    : view === "expiry"
+                      ? "Act early. Reduce waste. Keep the good things moving."
+                      : "The small details that make the workspace yours."}
+              </p>
+            </div>
+            {view !== "settings" && (
+              <button className="button primary" onClick={add}>
+                <Plus size={18} /> Add product
+              </button>
+            )}
+          </div>
+          {error && (
+            <div className="error-banner" role="alert">
+              {error}
+              <button className="text-button" onClick={load}>
+                Try again
+              </button>
+              <button
+                className="icon-button"
+                onClick={() => setError("")}
+                aria-label="Dismiss error"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          {loading ? (
+            <div className="page-loading" role="status">
+              <LoaderCircle className="spin" /> Taking stock…
+            </div>
+          ) : (
+            <>
+              {view === "overview" && (
+                <>
+                  <section className="metrics" aria-label="Inventory summary">
+                    <article>
+                      <div className="metric-top">
+                        TOTAL PRODUCTS
+                        <Boxes size={18} />
+                      </div>
+                      <div className="metric-value">
+                        {String(products.length).padStart(2, "0")}
+                        <span>SKUs</span>
+                      </div>
+                      <div className="metric-bottom">
+                        <span className="dot green" />
+                        {totalUnits.toLocaleString("en-IN")} units across your
+                        shelves
+                      </div>
+                    </article>
+                    <article>
+                      <div className="metric-top">
+                        INVENTORY VALUE
+                        <ArrowUpRight size={18} />
+                      </div>
+                      <div className="metric-value money-value">
+                        {money(value, currency)}
+                      </div>
+                      <div className="metric-bottom">
+                        Based on current unit costs
+                      </div>
+                    </article>
+                    <article className="metric-alert">
+                      <div className="metric-top">
+                        LOW STOCK
+                        <TriangleAlert size={18} />
+                      </div>
+                      <div className="metric-value">
+                        {String(low.length).padStart(2, "0")}
+                        <span>items</span>
+                      </div>
+                      <button
+                        className="metric-link"
+                        onClick={() => {
+                          setFilter("Low stock");
+                          navigate("/app/inventory");
+                        }}
+                      >
+                        Time for a restock <ArrowRight size={15} />
+                      </button>
+                    </article>
+                    <article>
+                      <div className="metric-top">
+                        EXPIRING SOON
+                        <Clock3 size={18} />
+                      </div>
+                      <div className="metric-value">
+                        {String(expiring.length).padStart(2, "0")}
+                        <span>items</span>
+                      </div>
+                      <div className="metric-bottom">
+                        Within the next 30 days
+                      </div>
+                    </article>
+                  </section>
+                  <div className="overview-grid">
+                    <section className="panel stock-overview">
+                      <div className="panel-header">
+                        <div>
+                          <span className="eyebrow">THE BIG PICTURE</span>
+                          <h2>A well-balanced stockroom.</h2>
+                        </div>
+                        <span className="subtle-tag">LIVE INVENTORY</span>
+                      </div>
+                      <div className="stock-health">
+                        <div className="health-number">
+                          {products.length
+                            ? Math.round((healthy / products.length) * 100)
+                            : 0}
+                          <span>%</span>
+                          <small>of products in healthy stock</small>
+                        </div>
+                        <div className="health-details">
+                          <div className="health-track">
+                            {[
+                              healthy,
+                              products.filter(
+                                (p) =>
+                                  status(p) === "Low stock" ||
+                                  status(p) === "Out of stock",
+                              ).length,
+                              expired.length,
+                            ].map((n, i) => (
+                              <div
+                                key={i}
+                                className={`segment segment-${i}`}
+                                style={{
+                                  width: `${products.length ? (n / products.length) * 100 : 0}%`,
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <div className="health-legend">
+                            <span>
+                              <i className="dot green" />
+                              Healthy <b>{healthy}</b>
+                            </span>
+                            <span>
+                              <i className="dot amber" />
+                              Low / empty{" "}
+                              <b>
+                                {
+                                  products.filter((p) =>
+                                    ["Low stock", "Out of stock"].includes(
+                                      status(p),
+                                    ),
+                                  ).length
+                                }
+                              </b>
+                            </span>
+                            <span>
+                              <i className="dot coral" />
+                              Expired <b>{expired.length}</b>
+                            </span>
+                          </div>
+                          <p>
+                            A healthy shelf starts with the right amount of
+                            everything.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="category-strip">
+                        {categories
+                          .filter((c) => products.some((p) => p.category === c))
+                          .map((c) => (
+                            <span key={c}>
+                              {c}
+                              <b>
+                                {
+                                  products.filter((p) => p.category === c)
+                                    .length
+                                }
+                              </b>
+                            </span>
+                          ))}
+                        {products.length === 0 && (
+                          <span>
+                            Your categories will appear as you add products.
+                          </span>
+                        )}
+                      </div>
+                    </section>
+                    <section className="attention-panel">
+                      <div className="attention-title">
+                        <span className="eyebrow">A HEADS-UP</span>
+                        <ArrowUpRight size={23} />
+                      </div>
+                      <h2>
+                        {expired.length
+                          ? "Some stock needs a closer look."
+                          : low.length
+                            ? "A few shelves need a little love."
+                            : "Looking good on your shelves."}
+                      </h2>
+                      <p>
+                        {expired.length
+                          ? `${expired.length} expired ${expired.length === 1 ? "product needs" : "products need"} attention. Review them before selling.`
+                          : low.length
+                            ? `${low.length} ${low.length === 1 ? "product is" : "products are"} running low. Plan your next order before the shelf runs empty.`
+                            : "Keep adding products and checking expiry dates to stay one step ahead."}
+                      </p>
+                      <button
+                        onClick={() => {
+                          setFilter(expired.length ? "Expired" : "Low stock");
+                          navigate("/app/inventory");
+                        }}
+                      >
+                        Take a closer look <ArrowRight size={17} />
+                      </button>
+                      <span className="attention-art" aria-hidden="true">
+                        ↗
+                      </span>
+                    </section>
+                  </div>
+                  <section className="panel">
+                    <div className="panel-header">
+                      <div>
+                        <span className="eyebrow">ON YOUR SHELVES</span>
+                        <h2>Recently updated.</h2>
+                      </div>
+                      <Link className="text-link" to="/app/inventory">
+                        View all inventory <ArrowUpRight size={16} />
+                      </Link>
+                    </div>
+                    {products.length ? (
+                      <ProductTable
+                        products={products.slice(0, 5)}
+                        onEdit={setModal}
+                        onDelete={setRemoving}
+                        currency={currency}
+                      />
+                    ) : (
+                      <Empty onAdd={add} />
+                    )}
+                  </section>
+                  {products.length === 0 && (
+                    <div className="sample-banner">
+                      <div>
+                        <strong>Want to look around first?</strong>
+                        <span>
+                          Add eight sample products to try every inventory
+                          feature.
+                        </span>
+                      </div>
+                      <button
+                        className="button secondary"
+                        onClick={sample}
+                        disabled={seeding}
+                      >
+                        {seeding ? "Adding samples…" : "Load sample inventory"}
+                        <ArrowUpRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+              {view === "inventory" && (
+                <section className="panel inventory-panel">
+                  <div className="inventory-toolbar">
+                    <div className="input-icon search-box">
+                      <Search size={18} />
+                      <input
+                        aria-label="Search inventory"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search name, SKU or supplier…"
+                      />
+                      {search && (
+                        <button
+                          className="icon-button"
+                          onClick={() => setSearch("")}
+                          aria-label="Clear search"
+                        >
+                          <X size={15} />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      className="button secondary"
+                      onClick={exportCSV}
+                      disabled={!visible.length}
+                    >
+                      <Download size={16} />
+                      Export CSV
+                    </button>
+                  </div>
+                  <div className="filter-toolbar">
+                    <select
+                      aria-label="Filter category"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
+                      {["All categories", ...categories].map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Filter stock status"
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                    >
+                      {[
+                        "All stock",
+                        "Healthy",
+                        "Low stock",
+                        "Expiring soon",
+                        "Expired",
+                      ].map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Sort inventory"
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value)}
+                    >
+                      <option value="updated">Recently updated</option>
+                      <option value="name">Name: A–Z</option>
+                      <option value="quantity">Lowest stock first</option>
+                      <option value="expiry">Nearest expiry first</option>
+                    </select>
+                    <span>
+                      {visible.length} of {products.length} products
+                    </span>
+                  </div>
+                  {visible.length ? (
+                    <ProductTable
+                      products={visible}
+                      onEdit={setModal}
+                      onDelete={setRemoving}
+                      currency={currency}
+                    />
+                  ) : (
+                    <Empty onAdd={add} filtered={products.length > 0} />
+                  )}
+                  <div className="table-footer">
+                    <span>
+                      Keep your stock accurate. Small updates make a difference.
+                    </span>
+                    <span>{totalUnits} TOTAL UNITS</span>
+                  </div>
+                </section>
+              )}
+              {view === "expiry" && (
+                <>
+                  <div className="expiry-summary">
+                    <div>
+                      <span className="dot coral" />
+                      <strong>{expired.length}</strong> expired
+                    </div>
+                    <div>
+                      <span className="dot amber" />
+                      <strong>{expiring.length}</strong> within 30 days
+                    </div>
+                    <div>
+                      <span className="dot green" />
+                      <strong>
+                        {
+                          products.filter(
+                            (p) => p.expiry && dayCount(p.expiry) > 30,
+                          ).length
+                        }
+                      </strong>{" "}
+                      in date
+                    </div>
+                  </div>
+                  <section className="panel">
+                    <div className="panel-header">
+                      <div>
+                        <span className="eyebrow">FIRST THINGS FIRST</span>
+                        <h2>The freshness timeline.</h2>
+                      </div>
+                      <span className="subtle-tag">NEXT 30 DAYS + EXPIRED</span>
+                    </div>
+                    {[...expired, ...expiring].length ? (
+                      <div className="expiry-list">
+                        {[...expired, ...expiring]
+                          .sort((a, b) => a.expiry.localeCompare(b.expiry))
+                          .map((p) => (
+                            <article className="expiry-item" key={p.id}>
+                              <div
+                                className={`expiry-date ${dayCount(p.expiry) < 0 ? "past" : ""}`}
+                              >
+                                <strong>
+                                  {new Date(p.expiry + "T00:00:00").getDate()}
+                                </strong>
+                                <span>
+                                  {new Date(
+                                    p.expiry + "T00:00:00",
+                                  ).toLocaleDateString("en-IN", {
+                                    month: "short",
+                                    year: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                              <div className="expiry-product">
+                                <strong>{p.name}</strong>
+                                <small>
+                                  {p.sku} · {p.quantity} units ·{" "}
+                                  {p.supplier || "No supplier"}
+                                </small>
+                              </div>
+                              <span
+                                className={`badge ${dayCount(p.expiry) < 0 ? "danger" : "warning"}`}
+                              >
+                                {expiryLabel(p)}
+                              </span>
+                              <button
+                                className="button secondary"
+                                onClick={() => setModal(p)}
+                              >
+                                Review <ArrowUpRight size={15} />
+                              </button>
+                            </article>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="empty-state">
+                        <CheckCheck size={38} />
+                        <h3>A fresh outlook.</h3>
+                        <p>
+                          No products are expired or expiring within 30 days.
+                        </p>
+                      </div>
+                    )}
+                  </section>
+                  <div className="tip-note">
+                    <Leaf size={22} />
+                    <p>
+                      <strong>A small habit. A meaningful difference.</strong>{" "}
+                      Rotate products so the earliest expiry dates are at the
+                      front of the shelf.
+                    </p>
+                  </div>
+                </>
+              )}
+              {view === "settings" && (
+                <div className="settings-grid">
+                  <section className="panel settings-card">
+                    <span className="eyebrow">YOUR ACCOUNT</span>
+                    <h2>The person behind the shelves.</h2>
+                    <div className="profile-row">
+                      <span className="avatar large">
+                        {user.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div>
+                        <h3>{user.name}</h3>
+                        <p>{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="setting-detail">
+                      <span>Member since</span>
+                      <strong>
+                        {new Date(user.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </strong>
+                    </div>
+                    <div className="setting-detail">
+                      <span>Workspace access</span>
+                      <strong>
+                        <ShieldCheck size={16} /> Authenticated
+                      </strong>
+                    </div>
+                    <button className="button secondary" onClick={signout}>
+                      <LogOut size={17} />
+                      Sign out
+                    </button>
+                  </section>
+                  <section className="panel settings-card">
+                    <span className="eyebrow">THE LITTLE DETAILS</span>
+                    <h2>Set the mood.</h2>
+                    <p>Choose the appearance that feels right for you.</p>
+                    <div className="theme-options">
+                      {["light", "dark"].map((t) => (
+                        <button
+                          key={t}
+                          className={`theme-option ${theme === t ? "selected" : ""}`}
+                          onClick={() => setTheme(t)}
+                        >
+                          {t === "light" ? <Sun /> : <Moon />}
+                          <span>
+                            {t === "light" ? "Daylight" : "After hours"}
+                          </span>
+                          {theme === t && <Check size={17} />}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="currency-label">
+                      Display currency
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                      >
+                        <option value="INR">Indian rupee (₹)</option>
+                        <option value="USD">US dollar ($)</option>
+                        <option value="EUR">Euro (€)</option>
+                        <option value="GBP">British pound (£)</option>
+                      </select>
+                    </label>
+                    <small>
+                      Changes the display symbol only. Existing prices are not
+                      converted.
+                    </small>
+                  </section>
+                </div>
+              )}
+            </>
+          )}
+          <footer className="workspace-footer">
+            <span>
+              <Package size={14} /> StockWise <span>·</span> Keep the good
+              things in stock.
+            </span>
+            <span>BUILT FOR EVERYDAY BUSINESS</span>
+          </footer>
+        </main>
+      </div>
+      {modal !== undefined && (
+        <ProductModal
+          product={modal}
+          onClose={() => setModal(undefined)}
+          onSave={save}
+        />
+      )}{" "}
+      {removing && (
+        <DeleteDialog
+          product={removing}
+          busy={deleteBusy}
+          onClose={() => setRemoving(null)}
+          onConfirm={remove}
+        />
+      )}
+      {toast && (
+        <div className="toast" role="status">
+          <Check size={18} />
+          {toast}
+          <button
+            className="icon-button"
+            onClick={() => setToast("")}
+            aria-label="Dismiss notification"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+function DeleteDialog({ product, busy, onClose, onConfirm }) {
+  const ref = useRef(null),
+    prior = useRef(document.activeElement);
+  useEffect(() => {
+    ref.current.focus();
+    return () => prior.current?.focus();
+  }, []);
+  return (
+    <div className="modal-backdrop">
+      <div
+        className="modal delete-modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-title"
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && !busy) onClose();
+          if (e.key === "Tab") {
+            e.preventDefault();
+            const buttons = e.currentTarget.querySelectorAll("button");
+            (document.activeElement === buttons[0]
+              ? buttons[1]
+              : buttons[0]
+            ).focus();
+          }
+        }}
+      >
+        <span className="icon-tile">
+          <Trash2 />
+        </span>
+        <h2 id="delete-title">Remove this product?</h2>
+        <p>
+          <strong>{product.name}</strong> will be deleted from your inventory.
+          This cannot be undone.
+        </p>
+        <div className="modal-actions">
+          <button
+            ref={ref}
+            disabled={busy}
+            className="button secondary"
+            onClick={onClose}
+          >
+            Keep product
+          </button>
+          <button
+            disabled={busy}
+            className="button danger-button"
+            onClick={onConfirm}
+          >
+            {busy ? "Removing…" : "Remove product"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+export default function App() {
+  const [theme, setTheme] = useState(
+    () =>
+      localStorage.getItem("stockwise.theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"),
+  );
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("stockwise.theme", theme);
+    document.querySelector('meta[name="theme-color"]').content =
+      theme === "dark" ? "#171d18" : "#f6f7f0";
+  }, [theme]);
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <Routes>
+          <Route
+            path="/login"
+            element={<PublicPage {...{ theme, setTheme }} />}
+          />
+          <Route
+            path="/register"
+            element={<PublicPage register {...{ theme, setTheme }} />}
+          />
+          <Route element={<ProtectedRoute />}>
+            <Route
+              path="/app"
+              element={<Workspace {...{ theme, setTheme }} />}
+            />
+            <Route
+              path="/app/inventory"
+              element={<Workspace {...{ theme, setTheme }} />}
+            />
+            <Route
+              path="/app/expiry"
+              element={<Workspace {...{ theme, setTheme }} />}
+            />
+            <Route
+              path="/app/settings"
+              element={<Workspace {...{ theme, setTheme }} />}
+            />
+          </Route>
+          <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}

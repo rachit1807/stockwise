@@ -30,16 +30,14 @@ export function userController(store, settings) {
   const validate = (schema, body, res) => {
     const result = schema.safeParse(body);
     if (!result.success) {
-      res
-        .status(400)
-        .json({
-          error: "Please check your information.",
-          code: "VALIDATION_ERROR",
-          details: result.error.issues.map((i) => ({
-            field: i.path.join("."),
-            message: i.message,
-          })),
-        });
+      res.status(400).json({
+        error: "Please check your information.",
+        code: "VALIDATION_ERROR",
+        details: result.error.issues.map((i) => ({
+          field: i.path.join("."),
+          message: i.message,
+        })),
+      });
       return null;
     }
     return result.data;
@@ -48,14 +46,12 @@ export function userController(store, settings) {
     const token = issueToken(user, settings);
     const claims = readToken(token, settings);
     await store.addSession(claims.jti, user.id, claims.exp);
-    res
-      .status(status)
-      .json({
-        user: publicUser(user),
-        accessToken: token,
-        tokenType: "Bearer",
-        expiresAt: new Date(claims.exp * 1000).toISOString(),
-      });
+    res.status(status).json({
+      user: publicUser(user),
+      accessToken: token,
+      tokenType: "Bearer",
+      expiresAt: new Date(claims.exp * 1000).toISOString(),
+    });
   };
   return {
     register: async (req, res, next) => {
@@ -76,12 +72,10 @@ export function userController(store, settings) {
           e.code === "23505" ||
           String(e.message).includes("UNIQUE constraint")
         )
-          return res
-            .status(409)
-            .json({
-              error: "An account with this email already exists.",
-              code: "EMAIL_EXISTS",
-            });
+          return res.status(409).json({
+            error: "An account with this email already exists.",
+            code: "EMAIL_EXISTS",
+          });
         next(e);
       }
     },
@@ -95,12 +89,10 @@ export function userController(store, settings) {
           user?.password_hash || fallbackHash,
         );
         if (!user || !valid)
-          return res
-            .status(401)
-            .json({
-              error: "Email or password is incorrect.",
-              code: "INVALID_CREDENTIALS",
-            });
+          return res.status(401).json({
+            error: "Email or password is incorrect.",
+            code: "INVALID_CREDENTIALS",
+          });
         await authenticate(user, res);
       } catch (e) {
         next(e);
