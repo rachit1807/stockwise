@@ -102,7 +102,7 @@ function Brand() {
       <span className="brand-symbol">
         <Package size={24} strokeWidth={1.7} />
       </span>
-      stockwise<span className="brand-period">.</span>
+      StockWise
     </Link>
   );
 }
@@ -127,14 +127,14 @@ function PublicPage({ register, theme, setTheme }) {
       <header className="public-header">
         <Brand />
         <div className="header-right">
-          <span>YOUR BUSINESS, IN BALANCE</span>
+          <span>INVENTORY OPERATIONS PLATFORM</span>
           <ThemeButton {...{ theme, setTheme }} />
         </div>
       </header>
       {register ? <RegisterForm /> : <LoginForm />}
       <footer className="public-footer">
         <span>© {new Date().getFullYear()} StockWise</span>
-        <span>Keep the good things in stock.</span>
+        <span>Inventory operations platform.</span>
       </footer>
     </>
   );
@@ -223,11 +223,7 @@ function ProductModal({ product, onClose, onSave }) {
         <div className="modal-heading">
           <div>
             <span className="eyebrow">YOUR INVENTORY</span>
-            <h2 id="modal-title">
-              {product
-                ? "A little stock update."
-                : "Make room for something new."}
-            </h2>
+            <h2 id="modal-title">{product ? "Edit product" : "New product"}</h2>
           </div>
           <button
             className="icon-button"
@@ -402,12 +398,12 @@ function Empty({ onAdd, filtered = false }) {
     <div className="empty-state">
       <Archive size={36} strokeWidth={1.2} />
       <h3>
-        {filtered ? "Nothing on this shelf." : "Your next chapter starts here."}
+        {filtered ? "No matching products" : "No products in your inventory"}
       </h3>
       <p>
         {filtered
           ? "Try another search or adjust your filters."
-          : "Add your first product to see your stockroom come to life."}
+          : "Create a product record to start tracking inventory."}
       </p>
       {!filtered && (
         <button className="button primary" onClick={onAdd}>
@@ -523,9 +519,7 @@ function Workspace({ theme, setTheme }) {
     });
     setProducts((prev) => [result.product, ...prev.filter((p) => p.id !== id)]);
     setToast(
-      id
-        ? "Product updated. All in order."
-        : "Product added to your stockroom.",
+      id ? "Product updated successfully." : "Product added successfully.",
     );
   }
   async function remove() {
@@ -701,7 +695,7 @@ function Workspace({ theme, setTheme }) {
           });
       }
       await load();
-      setToast("Sample products added. Explore your stockroom.");
+      setToast("Sample inventory loaded successfully.");
     } catch (e) {
       await load();
       setError(e.message);
@@ -726,14 +720,8 @@ function Workspace({ theme, setTheme }) {
   ];
   return (
     <div className="workspace">
-      <aside
-        id="workspace-navigation"
-        className={`sidebar ${menu ? "is-open" : ""}`}
-      >
+      <aside id="workspace-navigation" className="top-navigation">
         <Brand />
-        <div className="workspace-label">
-          <span className="live-dot" /> THE STOCKROOM <span>01</span>
-        </div>
         <nav aria-label="Main navigation">
           {navItems.map(([to, Icon, label]) => (
             <NavLink key={to} to={to} end>
@@ -748,26 +736,11 @@ function Workspace({ theme, setTheme }) {
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-note">
-          <Leaf size={24} strokeWidth={1.4} />
-          <h3>
-            A little less waste.
-            <br />A lot more possibility.
-          </h3>
-          <p>
-            Keep an eye on expiry dates.
-            <br />
-            Give every product its moment.
-          </p>
-          <Link to="/app/expiry">
-            Check the shelf <ArrowUpRight size={17} />
-          </Link>
-        </div>
         <div className="sidebar-user">
           <span className="avatar">{user.name.slice(0, 1).toUpperCase()}</span>
           <div>
             <strong>{user.name}</strong>
-            <small>Workspace owner</small>
+            <small>Account owner</small>
           </div>
           <button
             className="icon-button"
@@ -788,15 +761,6 @@ function Workspace({ theme, setTheme }) {
       <div className="workspace-body">
         <header className="workspace-header">
           <div className="breadcrumb">
-            <button
-              className="icon-button mobile-menu"
-              aria-label="Open navigation"
-              aria-expanded={menu}
-              aria-controls="workspace-navigation"
-              onClick={() => setMenu(!menu)}
-            >
-              <Menu size={22} />
-            </button>
             <span>Workspace</span>
             <ChevronRight size={14} />
             <strong>
@@ -829,30 +793,30 @@ function Workspace({ theme, setTheme }) {
             <div>
               <div className="eyebrow">
                 {view === "overview"
-                  ? "A CLEARER VIEW OF YOUR BUSINESS"
+                  ? "OPERATIONS / DASHBOARD"
                   : view === "inventory"
-                    ? "EVERY ITEM. EVERY DETAIL."
+                    ? "OPERATIONS / CATALOG"
                     : view === "expiry"
-                      ? "GOOD PRODUCTS DESERVE GOOD TIMING"
-                      : "MAKE YOURSELF AT HOME"}
+                      ? "OPERATIONS / EXPIRY CONTROL"
+                      : "WORKSPACE / SETTINGS"}
               </div>
               <h1>
                 {view === "overview"
-                  ? "Every shelf, in balance."
+                  ? "Inventory overview"
                   : view === "inventory"
-                    ? "Your inventory, at a glance."
+                    ? "Product catalog"
                     : view === "expiry"
-                      ? "A watchful eye on freshness."
-                      : "Your workspace. Your way."}
+                      ? "Expiry control"
+                      : "Workspace settings"}
               </h1>
               <p>
                 {view === "overview"
-                  ? `Welcome back, ${user.name.split(" ")[0]}. Here’s what’s happening in your stockroom.`
+                  ? `${user.name.split(" ")[0]}, here is your current inventory position.`
                   : view === "inventory"
-                    ? "A place for everything you keep in stock."
+                    ? "Manage products, stock quantities and supplier information."
                     : view === "expiry"
-                      ? "Act early. Reduce waste. Keep the good things moving."
-                      : "The small details that make the workspace yours."}
+                      ? "Review expired inventory and upcoming expiry dates."
+                      : "Manage your account details and workspace preferences."}
               </p>
             </div>
             {view !== "settings" && (
@@ -896,8 +860,8 @@ function Workspace({ theme, setTheme }) {
                       </div>
                       <div className="metric-bottom">
                         <span className="dot green" />
-                        {totalUnits.toLocaleString("en-IN")} units across your
-                        shelves
+                        {totalUnits.toLocaleString("en-IN")} units currently in
+                        stock
                       </div>
                     </article>
                     <article>
@@ -928,7 +892,7 @@ function Workspace({ theme, setTheme }) {
                           navigate("/app/inventory");
                         }}
                       >
-                        Time for a restock <ArrowRight size={15} />
+                        Review low stock <ArrowRight size={15} />
                       </button>
                     </article>
                     <article>
@@ -945,150 +909,148 @@ function Workspace({ theme, setTheme }) {
                       </div>
                     </article>
                   </section>
-                  <div className="overview-grid">
-                    <section className="panel stock-overview">
+                  <div className="operations-board">
+                    <div className="overview-grid">
+                      <section className="panel stock-overview">
+                        <div className="panel-header">
+                          <div>
+                            <span className="eyebrow">STOCK DISTRIBUTION</span>
+                            <h2>Inventory health</h2>
+                          </div>
+                          <span className="subtle-tag">CURRENT STATUS</span>
+                        </div>
+                        <div className="stock-health">
+                          <div className="health-number">
+                            {products.length
+                              ? Math.round((healthy / products.length) * 100)
+                              : 0}
+                            <span>%</span>
+                            <small>of products in healthy stock</small>
+                          </div>
+                          <div className="health-details">
+                            <div className="health-track">
+                              {[
+                                healthy,
+                                products.filter(
+                                  (p) =>
+                                    status(p) === "Low stock" ||
+                                    status(p) === "Out of stock",
+                                ).length,
+                                expired.length,
+                              ].map((n, i) => (
+                                <div
+                                  key={i}
+                                  className={`segment segment-${i}`}
+                                  style={{
+                                    width: `${products.length ? (n / products.length) * 100 : 0}%`,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <div className="health-legend">
+                              <span>
+                                <i className="dot green" />
+                                Healthy <b>{healthy}</b>
+                              </span>
+                              <span>
+                                <i className="dot amber" />
+                                Low / empty{" "}
+                                <b>
+                                  {
+                                    products.filter((p) =>
+                                      ["Low stock", "Out of stock"].includes(
+                                        status(p),
+                                      ),
+                                    ).length
+                                  }
+                                </b>
+                              </span>
+                              <span>
+                                <i className="dot coral" />
+                                Expired <b>{expired.length}</b>
+                              </span>
+                            </div>
+                            <p>
+                              Monitor availability across your product catalog.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="category-strip">
+                          {categories
+                            .filter((c) =>
+                              products.some((p) => p.category === c),
+                            )
+                            .map((c) => (
+                              <span key={c}>
+                                {c}
+                                <b>
+                                  {
+                                    products.filter((p) => p.category === c)
+                                      .length
+                                  }
+                                </b>
+                              </span>
+                            ))}
+                          {products.length === 0 && (
+                            <span>No product categories available.</span>
+                          )}
+                        </div>
+                      </section>
+                      <section className="attention-panel">
+                        <div className="attention-title">
+                          <span className="eyebrow">REQUIRES ATTENTION</span>
+                          <ArrowUpRight size={23} />
+                        </div>
+                        <h2>
+                          {expired.length
+                            ? "Expired inventory detected"
+                            : low.length
+                              ? "Replenishment required"
+                              : "No critical stock alerts"}
+                        </h2>
+                        <p>
+                          {expired.length
+                            ? `${expired.length} expired ${expired.length === 1 ? "product needs" : "products need"} attention. Review them before selling.`
+                            : low.length
+                              ? `${low.length} ${low.length === 1 ? "product is" : "products are"} running low. Plan your next order before the shelf runs empty.`
+                              : "Keep adding products and checking expiry dates to stay one step ahead."}
+                        </p>
+                        <button
+                          onClick={() => {
+                            setFilter(expired.length ? "Expired" : "Low stock");
+                            navigate("/app/inventory");
+                          }}
+                        >
+                          Review affected products <ArrowRight size={17} />
+                        </button>
+                      </section>
+                    </div>
+                    <section className="panel">
                       <div className="panel-header">
                         <div>
-                          <span className="eyebrow">THE BIG PICTURE</span>
-                          <h2>A well-balanced stockroom.</h2>
+                          <span className="eyebrow">PRODUCT ACTIVITY</span>
+                          <h2>Latest inventory updates</h2>
                         </div>
-                        <span className="subtle-tag">LIVE INVENTORY</span>
+                        <Link className="text-link" to="/app/inventory">
+                          View all inventory <ArrowUpRight size={16} />
+                        </Link>
                       </div>
-                      <div className="stock-health">
-                        <div className="health-number">
-                          {products.length
-                            ? Math.round((healthy / products.length) * 100)
-                            : 0}
-                          <span>%</span>
-                          <small>of products in healthy stock</small>
-                        </div>
-                        <div className="health-details">
-                          <div className="health-track">
-                            {[
-                              healthy,
-                              products.filter(
-                                (p) =>
-                                  status(p) === "Low stock" ||
-                                  status(p) === "Out of stock",
-                              ).length,
-                              expired.length,
-                            ].map((n, i) => (
-                              <div
-                                key={i}
-                                className={`segment segment-${i}`}
-                                style={{
-                                  width: `${products.length ? (n / products.length) * 100 : 0}%`,
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <div className="health-legend">
-                            <span>
-                              <i className="dot green" />
-                              Healthy <b>{healthy}</b>
-                            </span>
-                            <span>
-                              <i className="dot amber" />
-                              Low / empty{" "}
-                              <b>
-                                {
-                                  products.filter((p) =>
-                                    ["Low stock", "Out of stock"].includes(
-                                      status(p),
-                                    ),
-                                  ).length
-                                }
-                              </b>
-                            </span>
-                            <span>
-                              <i className="dot coral" />
-                              Expired <b>{expired.length}</b>
-                            </span>
-                          </div>
-                          <p>
-                            A healthy shelf starts with the right amount of
-                            everything.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="category-strip">
-                        {categories
-                          .filter((c) => products.some((p) => p.category === c))
-                          .map((c) => (
-                            <span key={c}>
-                              {c}
-                              <b>
-                                {
-                                  products.filter((p) => p.category === c)
-                                    .length
-                                }
-                              </b>
-                            </span>
-                          ))}
-                        {products.length === 0 && (
-                          <span>
-                            Your categories will appear as you add products.
-                          </span>
-                        )}
-                      </div>
-                    </section>
-                    <section className="attention-panel">
-                      <div className="attention-title">
-                        <span className="eyebrow">A HEADS-UP</span>
-                        <ArrowUpRight size={23} />
-                      </div>
-                      <h2>
-                        {expired.length
-                          ? "Some stock needs a closer look."
-                          : low.length
-                            ? "A few shelves need a little love."
-                            : "Looking good on your shelves."}
-                      </h2>
-                      <p>
-                        {expired.length
-                          ? `${expired.length} expired ${expired.length === 1 ? "product needs" : "products need"} attention. Review them before selling.`
-                          : low.length
-                            ? `${low.length} ${low.length === 1 ? "product is" : "products are"} running low. Plan your next order before the shelf runs empty.`
-                            : "Keep adding products and checking expiry dates to stay one step ahead."}
-                      </p>
-                      <button
-                        onClick={() => {
-                          setFilter(expired.length ? "Expired" : "Low stock");
-                          navigate("/app/inventory");
-                        }}
-                      >
-                        Take a closer look <ArrowRight size={17} />
-                      </button>
-                      <span className="attention-art" aria-hidden="true">
-                        ↗
-                      </span>
+                      {products.length ? (
+                        <ProductTable
+                          products={products.slice(0, 5)}
+                          onEdit={setModal}
+                          onDelete={setRemoving}
+                          currency={currency}
+                        />
+                      ) : (
+                        <Empty onAdd={add} />
+                      )}
                     </section>
                   </div>
-                  <section className="panel">
-                    <div className="panel-header">
-                      <div>
-                        <span className="eyebrow">ON YOUR SHELVES</span>
-                        <h2>Recently updated.</h2>
-                      </div>
-                      <Link className="text-link" to="/app/inventory">
-                        View all inventory <ArrowUpRight size={16} />
-                      </Link>
-                    </div>
-                    {products.length ? (
-                      <ProductTable
-                        products={products.slice(0, 5)}
-                        onEdit={setModal}
-                        onDelete={setRemoving}
-                        currency={currency}
-                      />
-                    ) : (
-                      <Empty onAdd={add} />
-                    )}
-                  </section>
                   {products.length === 0 && (
                     <div className="sample-banner">
                       <div>
-                        <strong>Want to look around first?</strong>
+                        <strong>Explore a sample workspace</strong>
                         <span>
                           Add eight sample products to try every inventory
                           feature.
@@ -1219,8 +1181,8 @@ function Workspace({ theme, setTheme }) {
                   <section className="panel">
                     <div className="panel-header">
                       <div>
-                        <span className="eyebrow">FIRST THINGS FIRST</span>
-                        <h2>The freshness timeline.</h2>
+                        <span className="eyebrow">EXPIRY REGISTER</span>
+                        <h2>Products requiring review</h2>
                       </div>
                       <span className="subtle-tag">NEXT 30 DAYS + EXPIRED</span>
                     </div>
@@ -1269,7 +1231,7 @@ function Workspace({ theme, setTheme }) {
                     ) : (
                       <div className="empty-state">
                         <CheckCheck size={38} />
-                        <h3>A fresh outlook.</h3>
+                        <h3>No upcoming expiry alerts</h3>
                         <p>
                           No products are expired or expiring within 30 days.
                         </p>
@@ -1279,9 +1241,9 @@ function Workspace({ theme, setTheme }) {
                   <div className="tip-note">
                     <Leaf size={22} />
                     <p>
-                      <strong>A small habit. A meaningful difference.</strong>{" "}
-                      Rotate products so the earliest expiry dates are at the
-                      front of the shelf.
+                      <strong>Inventory handling guidance</strong> Rotate
+                      products so the earliest expiry dates are at the front of
+                      the shelf.
                     </p>
                   </div>
                 </>
@@ -1289,8 +1251,8 @@ function Workspace({ theme, setTheme }) {
               {view === "settings" && (
                 <div className="settings-grid">
                   <section className="panel settings-card">
-                    <span className="eyebrow">YOUR ACCOUNT</span>
-                    <h2>The person behind the shelves.</h2>
+                    <span className="eyebrow">ACCOUNT PROFILE</span>
+                    <h2>Account information</h2>
                     <div className="profile-row">
                       <span className="avatar large">
                         {user.name.slice(0, 1).toUpperCase()}
@@ -1322,9 +1284,11 @@ function Workspace({ theme, setTheme }) {
                     </button>
                   </section>
                   <section className="panel settings-card">
-                    <span className="eyebrow">THE LITTLE DETAILS</span>
-                    <h2>Set the mood.</h2>
-                    <p>Choose the appearance that feels right for you.</p>
+                    <span className="eyebrow">DISPLAY PREFERENCES</span>
+                    <h2>Appearance and currency</h2>
+                    <p>
+                      Customize how information is displayed in your workspace.
+                    </p>
                     <div className="theme-options">
                       {["light", "dark"].map((t) => (
                         <button
@@ -1334,7 +1298,7 @@ function Workspace({ theme, setTheme }) {
                         >
                           {t === "light" ? <Sun /> : <Moon />}
                           <span>
-                            {t === "light" ? "Daylight" : "After hours"}
+                            {t === "light" ? "Light theme" : "Dark theme"}
                           </span>
                           {theme === t && <Check size={17} />}
                         </button>
@@ -1363,10 +1327,10 @@ function Workspace({ theme, setTheme }) {
           )}
           <footer className="workspace-footer">
             <span>
-              <Package size={14} /> StockWise <span>·</span> Keep the good
-              things in stock.
+              <Package size={14} /> StockWise <span>·</span> Inventory
+              operations platform.
             </span>
-            <span>BUILT FOR EVERYDAY BUSINESS</span>
+            <span>STOCKWISE · OPERATIONS PLATFORM</span>
           </footer>
         </main>
       </div>
@@ -1468,7 +1432,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("stockwise.theme", theme);
     document.querySelector('meta[name="theme-color"]').content =
-      theme === "dark" ? "#171d18" : "#f6f7f0";
+      theme === "dark" ? "#0d1624" : "#f3f5f8";
   }, [theme]);
   return (
     <AuthProvider>

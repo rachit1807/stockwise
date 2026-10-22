@@ -47,65 +47,32 @@ export default function LoginForm({ register = false }) {
   return (
     <div className="auth-layout" id="main-content">
       <section className="auth-story">
-        <div className="edition">SMALL BUSINESS. BIG PICTURE.</div>
+        <span className="edition">STOCKWISE / BUSINESS OPERATIONS</span>
         <h1>
-          Good stock.
+          Inventory intelligence.
           <br />
-          Less guesswork<span>.</span>
+          Operational control.
         </h1>
         <p>
-          Your shelves have a story.
-          <br />
-          Know what’s selling, what’s low,
-          <br />
-          and what needs your attention.
+          A central workspace for stock, replenishment and expiry monitoring.
         </p>
-        <div className="shelf-art" aria-hidden="true">
-          <div className="art-label">
-            THE WELL-KEPT STOCKROOM <ArrowUpRight size={18} />
-          </div>
-          <div className="shelf">
-            <div className="pack p1">
-              OAT
-              <br />
-              <b>01</b>
-            </div>
-            <div className="pack p2">
-              daily
-              <br />
-              <b>02</b>
-            </div>
-            <div className="pack p3">
-              FRESH
-              <br />
-              <b>03</b>
-            </div>
-          </div>
-          <div className="art-foot">
-            <span>Everything in its place.</span>
-            <span>EST. 2026</span>
-          </div>
-        </div>
-        <div className="story-bottom">
-          <span className="live-dot" /> A little clarity goes a long way.
-        </div>
       </section>
       <section className="auth-form-area">
         <div className="form-eyebrow">
-          <span>YOUR WORKSPACE AWAITS</span>
-          <span>01 / 02</span>
+          <span>ACCOUNT ACCESS</span>
+          <span className="access-indicator">
+            <span /> SECURE SESSION
+          </span>
         </div>
         <div className="auth-form-inner">
           <div className="icon-tile">
             <LockKeyhole size={25} />
           </div>
-          <h2>
-            {register ? "Start with a clean shelf." : "Back to business."}
-          </h2>
+          <h2>{register ? "Create your account" : "Sign in to StockWise"}</h2>
           <p>
             {register
-              ? "Create your account. Bring your inventory into focus."
-              : "Sign in to see how your stockroom is doing."}
+              ? "Set up your business workspace in a few simple steps."
+              : "Enter your credentials to access your inventory."}
           </p>
           <form onSubmit={submit} key={String(register)}>
             {register && (
@@ -178,11 +145,7 @@ export default function LoginForm({ register = false }) {
               </div>
             )}
             <button className="button primary full" disabled={busy}>
-              {busy
-                ? "Connecting…"
-                : register
-                  ? "Create my workspace"
-                  : "Open my workspace"}
+              {busy ? "Connecting…" : register ? "Create account" : "Sign in"}
               <ArrowRight size={18} />
             </button>
           </form>
@@ -194,11 +157,11 @@ export default function LoginForm({ register = false }) {
             </Link>
           </div>
           <div className="auth-assurance">
-            <Check size={15} /> Your inventory stays in your account.
+            <Check size={15} /> Account-specific inventory. Verified access.
           </div>
         </div>
         <div className="form-footer">
-          A fresh perspective on everyday inventory.
+          Protected by encrypted credentials and verified sessions.
         </div>
       </section>
     </div>

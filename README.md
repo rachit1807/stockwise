@@ -2,9 +2,9 @@
 
 <img src="public/favicon.svg" width="68" alt="StockWise box logo">
 
-# stockwise.
+# StockWise
 
-### Every shelf, in balance.
+### Inventory intelligence. Operational control.
 
 Inventory clarity for the small businesses that keep everyday life moving.<br>
 Track stock, spot shortages, and give every product its moment before expiry.
@@ -16,7 +16,6 @@ Track stock, spot shortages, and give every product its moment before expiry.
 
 </div>
 
-![StockWise brand illustration: Every shelf, in balance.](public/stockwise-banner.svg)
 
 ## Why StockWise?
 
@@ -35,7 +34,7 @@ This project demonstrates **connecting a React frontend to backend authenticatio
 - **CSV export:** download the currently filtered inventory, with spreadsheet formula-injection protection.
 - **Sample inventory:** explicitly load eight example products into your own empty workspace.
 - **Appearance:** remembered light/dark themes and currency display preferences. Currency preferences change the symbol, not the stored prices.
-- **Responsive design:** desktop sidebar, mobile navigation drawer, stacked phone inventory cards, responsive forms and touch-friendly controls.
+- **Responsive design:** horizontal desktop navigation, fixed mobile navigation, stacked phone inventory cards, responsive forms and touch-friendly controls.
 - **Accessible interactions:** semantic labels, focus indicators, dialog focus management, Escape dismissal, live feedback and reduced-motion support.
 
 ## A look inside
