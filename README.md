@@ -16,7 +16,7 @@ Track stock, spot shortages, and give every product its moment before expiry.
 
 </div>
 
----
+![StockWise brand illustration: Every shelf, in balance.](public/stockwise-banner.svg)
 
 ## Why StockWise?
 
